@@ -1,0 +1,33 @@
+{
+  "name": "@memory-hub/web",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0 --port 8788",
+    "build": "vue-tsc -b && vite build --configLoader runner",
+    "test": "vitest run --configLoader runner",
+    "test:coverage": "vitest run --coverage --configLoader runner",
+    "typecheck": "vue-tsc -b --pretty false",
+    "lint": "eslint src --max-warnings 0"
+  },
+  "dependencies": {
+    "@tanstack/vue-query": "^5.66.0",
+    "@vue/devtools-api": "8.1.5",
+    "naive-ui": "^2.44.1",
+    "pinia": "^4.0.3",
+    "vue": "^3.5.13",
+    "vue-router": "^4.5.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^6.0.0",
+    "@vitest/coverage-v8": "^3.0.0",
+    "@vue/test-utils": "^2.4.6",
+    "eslint": "^9.18.0",
+    "happy-dom": "^16.7.0",
+    "typescript": "~5.7.3",
+    "vite": "^7.0.0",
+    "vitest": "^3.0.0",
+    "vue-tsc": "^2.2.0"
+  }
+}

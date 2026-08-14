@@ -1,0 +1,71 @@
+# Design-only blueprint. Image names and commands will be finalized after approval.
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: memoryhub
+      POSTGRES_USER: memoryhub
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+    secrets:
+      - postgres_password
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U memoryhub -d memoryhub']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  memoryhub:
+    image: ghcr.io/replace-after-approval/memory-hub:0.1.0
+    command: ['api']
+    restart: unless-stopped
+    ports:
+      - '8787:8787'
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://memoryhub@postgres:5432/memoryhub
+      SIYUAN_BASE_URL: http://192.168.1.10:1166
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+      MEMORY_HUB_ADMIN_TOKEN_FILE: /run/secrets/admin_token
+    secrets:
+      - postgres_password
+      - admin_token
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD', 'node', 'healthcheck.mjs']
+      interval: 30s
+      timeout: 5s
+      retries: 5
+
+  worker:
+    image: ghcr.io/replace-after-approval/memory-hub:0.1.0
+    command: ['worker']
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://memoryhub@postgres:5432/memoryhub
+      SIYUAN_BASE_URL: http://192.168.1.10:1166
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+      SIYUAN_TOKEN_FILE: /run/secrets/siyuan_token
+      LLM_API_KEY_FILE: /run/secrets/llm_api_key
+    secrets:
+      - postgres_password
+      - siyuan_token
+      - llm_api_key
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+secrets:
+  postgres_password:
+    file: ./secrets/postgres_password
+  admin_token:
+    file: ./secrets/admin_token
+  siyuan_token:
+    file: ./secrets/siyuan_token
+  llm_api_key:
+    file: ./secrets/llm_api_key
