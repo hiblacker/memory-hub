@@ -597,8 +597,29 @@ input {
   min-width: 0;
 }
 
+.detail-reject-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.detail-reject-label {
+  flex: none;
+  min-width: 56px;
+  padding-top: 8px;
+  color: var(--mh-muted);
+  font-size: 0.86rem;
+}
+
 .detail-reject-input {
-  width: min(320px, 46vw);
+  width: min(640px, 92vw);
+  max-width: 100%;
+}
+
+.detail-reject-input .n-input__textarea-el {
+  min-height: 52px;
+  line-height: 1.5;
 }
 
 .workspace-content:has(.detail-page) {
@@ -1013,10 +1034,20 @@ body.md-fullscreen-open {
     max-width: none;
   }
 
+  .detail-reject-row {
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .detail-reject-label {
+    padding-top: 0;
+  }
+
   .detail-reject-input {
     width: 100%;
   }
 }
+
 
 
 

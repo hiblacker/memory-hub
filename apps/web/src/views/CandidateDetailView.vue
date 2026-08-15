@@ -318,17 +318,26 @@ function confirmReject() {
       </div>
 
       <div class="detail-sticky-bottom">
+        <div
+          v-if="candidateQuery.data.value && isPending"
+          class="detail-reject-row"
+        >
+          <label class="detail-reject-label" for="detail-reject-reason">
+            拒绝原因
+          </label>
+          <NInput
+            id="detail-reject-reason"
+            v-model:value="form.rejectReason"
+            type="textarea"
+            :rows="2"
+            maxlength="1000"
+            placeholder="可选，例如：信息过时或不应长期保存"
+            class="detail-reject-input"
+          />
+        </div>
         <div class="detail-actions">
           <div class="detail-actions-left">
             <NButton @click="router.push('/inbox')">返回列表</NButton>
-            <NInput
-              v-if="candidateQuery.data.value && isPending"
-              v-model:value="form.rejectReason"
-              size="small"
-              maxlength="1000"
-              placeholder="拒绝原因（可选）"
-              class="detail-reject-input"
-            />
           </div>
           <div class="detail-actions-primary">
             <template v-if="candidateQuery.data.value && isPending">
@@ -374,4 +383,5 @@ function confirmReject() {
     </div>
   </AppShell>
 </template>
+
 
