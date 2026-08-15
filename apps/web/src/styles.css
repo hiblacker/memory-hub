@@ -576,7 +576,7 @@ input {
   justify-content: space-between;
   gap: 12px;
   margin: -28px -30px 12px;
-  padding: 12px 30px;
+  padding: 20px 30px;
   border-bottom: 1px solid var(--mh-border);
 }
 
@@ -626,7 +626,7 @@ input {
 @media (max-width: 800px) {
   .detail-sticky-top {
     margin: -22px -16px 12px;
-    padding: 10px 16px;
+    padding: 20px 16px;
   }
 
   .detail-sticky-bottom {
@@ -951,3 +951,4 @@ body.md-fullscreen-open {
   min-height: calc(100vh - 320px);
   height: calc(100vh - 320px);
 }
+
