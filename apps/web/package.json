@@ -12,8 +12,10 @@
     "lint": "eslint src --max-warnings 0"
   },
   "dependencies": {
+    "@memory-hub/contracts": "workspace:*",
     "@tanstack/vue-query": "^5.66.0",
     "@vue/devtools-api": "8.1.5",
+    "lucide-vue-next": "^1.0.0",
     "naive-ui": "^2.44.1",
     "pinia": "^4.0.3",
     "vue": "^3.5.13",
