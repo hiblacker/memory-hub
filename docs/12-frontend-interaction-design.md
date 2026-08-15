@@ -95,23 +95,32 @@ flowchart TB
 
 ## 候选详情
 
-详情使用独立路由，便于刷新、回链和审计；来源原文使用抽屉或折叠区域展开，避免默认占满主工作区。
+详情使用独立路由，便于刷新、回链和审计；来源原文使用抽屉或折叠区域展开，避免默认占满主工作区。正文使用共享 Markdown 编辑器，规范见 [记忆正文 Markdown 与排版规范](13-memory-markdown-formatting.md)。
 
 ```mermaid
 flowchart LR
     subgraph DETAIL_PAGE["/inbox/:candidateId 候选详情"]
         HEAD["标题 / 类型 / 状态 / 置信度 / 版本"]
-        EDITOR["记忆正文编辑区"]
+        EDITOR["Markdown 工作区：默认仅预览"]
+        STYLE["风格：小红书笔记风 / 简洁技术风"]
         CHECKS["脱敏结果 / 冲突提示 / 来源引用"]
         TARGET["归档目标：笔记本 / 路径预览"]
         AUDIT["版本与审计时间线"]
         ACTION["保存草稿 / 批准并归档 / 拒绝 / 合并"]
-        HEAD --> EDITOR --> CHECKS --> TARGET --> ACTION
+        HEAD --> EDITOR --> STYLE --> CHECKS --> TARGET --> ACTION
         HEAD --> AUDIT
     end
     ACTION --> CONFIRM["NDialog：确认动作和影响范围"]
     CONFIRM --> QUEUED["进入归档队列并显示 delivery 状态"]
 ```
+
+正文交互：
+
+- 默认模式为 **仅预览**；可切换到编辑或分屏。
+- 待审核可编辑；已批准 / 已拒绝 / 已归档只读预览。
+- 提供风格切换、emoji 开关、套用模板和常用 emoji 插入。
+- 小红书笔记风为默认；简洁技术风可选；两种风格都使用 emoji 分区标题。
+- 预览前必须清洗 HTML；V1 不渲染图片 Markdown。
 
 动作规则：
 
@@ -125,8 +134,9 @@ flowchart LR
 
 ```mermaid
 flowchart LR
-    START["新建候选"] --> FORM["标题 / 来源 / 类型 / 项目 / 正文 / 捕获时间"]
-    FORM --> VALIDATE["前端校验"]
+    START["新建候选"] --> FORM["标题 / 类型 / 项目 / Markdown 正文"]
+    FORM --> PREVIEW_MODE["正文默认仅预览，可切换编辑/分屏"]
+    PREVIEW_MODE --> VALIDATE["前端校验"]
     VALIDATE -->|通过| SUBMIT["提交 API"]
     VALIDATE -->|失败| FORM
     SUBMIT --> ACCEPTED["已接收：候选进入处理队列"]
@@ -136,6 +146,9 @@ flowchart LR
     SELECT --> SUBMIT
 ```
 
+- 手动录入正文与候选详情复用同一套 Markdown 编辑器组件。
+- 手动录入打开后正文默认 **仅预览**；空内容显示明确空态和“去编辑”入口。
+- 可切换风格（默认小红书笔记风）、emoji 开关，并套用类型模板。
 - 手动录入和导入都先进入候选处理链，不直接写入思源。
 - 导入页面必须显示文件大小、会话数量、已选择数量和校验错误。
 - 不读取对话中的链接或附件；导入内容按不可信输入处理。
@@ -216,7 +229,7 @@ flowchart LR
 | -------------- | -------------------------------------------------------- |
 | 应用壳层与导航 | `NLayout`、`NLayoutSider`、`NMenu`、`NPageHeader`        |
 | 候选列表       | `NDataTable`、`NInput`、`NSelect`、`NTag`、`NPagination` |
-| 候选编辑       | `NForm`、`NInput`、`NSelect`、`NButton`、`NAlert`        |
+| 候选编辑       | `NForm`、`NInput`、`NSelect`、`NButton`、`NAlert`、共享 `MemoryMarkdownEditor` |
 | 来源与审计     | `NDescriptions`、`NCollapse`、`NTimeline`、`NDrawer`     |
 | 确认与反馈     | `NDialog`、`NMessage`、`NNotification`、`NResult`        |
 | 空、载入和错误 | `NEmpty`、`NSkeleton`、`NSpin`、`NAlert`                 |
@@ -230,4 +243,9 @@ flowchart LR
 - [x] 候选详情使用独立路由，来源原文使用抽屉或折叠区域展开。
 - [x] “批准并归档”使用确认对话框，并在冲突、敏感阻断、低置信度或目标不可用时禁用。
 - [x] 规则必须先试运行，再显式启用。
+- [x] 记忆正文使用 Markdown；录入页与详情页共用同一编辑器。
+- [x] 编辑器默认仅预览；可切换编辑/分屏。
+- [x] 默认风格为小红书笔记风，保留简洁技术风；两种风格都使用 emoji。
+- [x] emoji 默认开启，可关闭；V1 不支持图片 Markdown。
 - [x] 本设计作为 V1 前端开发基线；业务页面可以按 V1 开发顺序实现。
+

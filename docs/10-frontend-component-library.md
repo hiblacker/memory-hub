@@ -42,6 +42,17 @@ Naive UI 负责通用交互组件、组件状态和可访问性基础；MemoryHu
 
 页面不得重复创建应用级 Provider。主题覆盖先集中在该入口；当 Token 数量增长后，再拆分到独立主题模块。
 
+### Markdown 正文组件
+
+记忆正文不直接使用裸 `NInput type="textarea"` 作为最终方案。手动录入与候选详情必须复用同一共享组件（建议名 `MemoryMarkdownEditor`）：
+
+- 模式：仅预览（默认）、编辑、分屏
+- 能力：风格切换、emoji 开关、模板套用、常用 emoji、字数统计
+- 预览：Markdown 渲染 + HTML 清洗
+- 约束：V1 不支持图片；不引入 LLM 润色或 WYSIWYG 富文本引擎
+
+完整交互与排版规范见 [记忆正文 Markdown 与排版规范](13-memory-markdown-formatting.md)。
+
 ### 引入策略
 
 组件在使用它的 Vue 文件中按需导入，不全局注册全部 Naive UI 组件。V1 优先使用：
@@ -74,3 +85,4 @@ Naive UI 负责通用交互组件、组件状态和可访问性基础；MemoryHu
 - 至少一个组件测试验证 Naive UI 正常渲染。
 - 业务页面按需导入组件，不进行全量全局注册。
 - 主题值不包含思源 Token、模型密钥或其他服务端配置。
+
