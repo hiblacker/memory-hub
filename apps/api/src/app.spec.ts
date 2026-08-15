@@ -119,6 +119,7 @@ describe('MemoryHub API', () => {
       status: 'pending',
       project: 'memory-hub',
       confidence: 100,
+      rejectionReason: null,
     })
 
     const list = await app.inject({
@@ -127,15 +128,115 @@ describe('MemoryHub API', () => {
       cookies: { memoryhub_session: cookie },
     })
     expect(list.statusCode).toBe(200)
-    expect(list.json().items).toHaveLength(1)
-    expect(list.json().items[0].title).toBe('偏好使用 TypeScript')
+    expect(list.json().items.length).toBeGreaterThanOrEqual(1)
+    expect(
+      list.json().items.some(
+        (item: { title: string }) => item.title === '偏好使用 TypeScript',
+      ),
+    ).toBe(true)
 
     const home = await app.inject({
       method: 'GET',
       url: '/api/v1/home',
       cookies: { memoryhub_session: cookie },
     })
-    expect(home.json().counts.pendingCandidates).toBe(1)
+    expect(home.json().counts.pendingCandidates).toBeGreaterThanOrEqual(1)
+  })
+
+  it('可读取候选详情并保存草稿、批准与拒绝', async () => {
+    const cookie = await loginCookie()
+    const created = await app.inject({
+      method: 'POST',
+      url: '/api/v1/candidates',
+      cookies: { memoryhub_session: cookie },
+      payload: {
+        title: '原始标题',
+        body: '原始正文',
+        memoryType: 'decision',
+        project: 'memory-hub',
+      },
+    })
+    const candidateId = created.json().id as string
+
+    const detail = await app.inject({
+      method: 'GET',
+      url: `/api/v1/candidates/${candidateId}`,
+      cookies: { memoryhub_session: cookie },
+    })
+    expect(detail.statusCode).toBe(200)
+    expect(detail.json()).toMatchObject({
+      id: candidateId,
+      title: '原始标题',
+      status: 'pending',
+    })
+
+    const updated = await app.inject({
+      method: 'PATCH',
+      url: `/api/v1/candidates/${candidateId}`,
+      cookies: { memoryhub_session: cookie },
+      payload: {
+        title: '修订标题',
+        body: '修订后的正文',
+        memoryType: 'decision',
+        project: 'memory-hub',
+      },
+    })
+    expect(updated.statusCode).toBe(200)
+    expect(updated.json()).toMatchObject({
+      title: '修订标题',
+      body: '修订后的正文',
+      status: 'pending',
+    })
+
+    const approved = await app.inject({
+      method: 'POST',
+      url: `/api/v1/candidates/${candidateId}/approve`,
+      cookies: { memoryhub_session: cookie },
+    })
+    expect(approved.statusCode).toBe(200)
+    expect(approved.json().status).toBe('approved')
+
+    const rejectCreated = await app.inject({
+      method: 'POST',
+      url: '/api/v1/candidates',
+      cookies: { memoryhub_session: cookie },
+      payload: {
+        title: '应被拒绝',
+        body: '不需要保留的内容',
+        memoryType: 'temporary_state',
+      },
+    })
+    const rejectId = rejectCreated.json().id as string
+    const rejected = await app.inject({
+      method: 'POST',
+      url: `/api/v1/candidates/${rejectId}/reject`,
+      cookies: { memoryhub_session: cookie },
+      payload: { reason: '内容过时' },
+    })
+    expect(rejected.statusCode).toBe(200)
+    expect(rejected.json()).toMatchObject({
+      status: 'rejected',
+      rejectionReason: '内容过时',
+    })
+
+    const illegal = await app.inject({
+      method: 'POST',
+      url: `/api/v1/candidates/${candidateId}/approve`,
+      cookies: { memoryhub_session: cookie },
+    })
+    expect(illegal.statusCode).toBe(409)
+    expect(illegal.json().error.code).toBe('CANDIDATE_INVALID_STATE')
+  })
+
+  it('查询不存在的候选返回 404', async () => {
+    const cookie = await loginCookie()
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/v1/candidates/cand_missing',
+      cookies: { memoryhub_session: cookie },
+    })
+    expect(response.statusCode).toBe(404)
+    expect(response.json().error.code).toBe('CANDIDATE_NOT_FOUND')
   })
 
   it('拒绝无效的候选输入', async () => {

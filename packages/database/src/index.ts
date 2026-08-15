@@ -36,7 +36,12 @@ export type MemoryType =
   | 'sensitive'
 
 export type CandidateStatus =
-  'pending' | 'approved' | 'queued' | 'archived' | 'rejected' | 'conflict'
+  | 'pending'
+  | 'approved'
+  | 'queued'
+  | 'archived'
+  | 'rejected'
+  | 'conflict'
 
 export type Sensitivity = 'normal' | 'private' | 'strict'
 
@@ -50,6 +55,7 @@ export interface CandidateRecord {
   status: CandidateStatus
   sensitivity: Sensitivity
   confidence: number
+  rejectionReason: string | null
   captureTime: Date
   updatedAt: Date
 }
@@ -61,6 +67,17 @@ export interface CreateCandidateInput {
   project?: string | undefined
   captureTime?: Date | undefined
 }
+
+export interface UpdateCandidateInput {
+  title: string
+  body: string
+  memoryType: MemoryType
+  project?: string | undefined
+}
+
+export type CandidateMutationResult =
+  | { ok: true; candidate: CandidateRecord }
+  | { ok: false; code: 'NOT_FOUND' | 'INVALID_STATE'; message: string }
 
 export interface AuthStore {
   isReady(): Promise<boolean>
@@ -80,6 +97,16 @@ export interface AuthStore {
   getHomeCounts(): Promise<HomeCounts>
   createCandidate(input: CreateCandidateInput): Promise<CandidateRecord>
   listCandidates(): Promise<CandidateRecord[]>
+  getCandidate(id: string): Promise<CandidateRecord | undefined>
+  updateCandidate(
+    id: string,
+    input: UpdateCandidateInput,
+  ): Promise<CandidateMutationResult>
+  approveCandidate(id: string): Promise<CandidateMutationResult>
+  rejectCandidate(
+    id: string,
+    reason?: string | undefined,
+  ): Promise<CandidateMutationResult>
 }
 
 export const schema = {
@@ -99,6 +126,7 @@ function mapCandidate(row: {
   project: string | null
   sensitivity: string
   confidence: number
+  rejectionReason: string | null
   captureTime: Date
   updatedAt: Date
 }): CandidateRecord {
@@ -112,9 +140,45 @@ function mapCandidate(row: {
     status: row.status as CandidateStatus,
     sensitivity: row.sensitivity as Sensitivity,
     confidence: row.confidence,
+    rejectionReason: row.rejectionReason,
     captureTime: row.captureTime,
     updatedAt: row.updatedAt,
   }
+}
+
+const candidateSelect = {
+  id: memoryCandidates.id,
+  status: memoryCandidates.status,
+  title: memoryCandidates.title,
+  body: memoryCandidates.body,
+  memoryType: memoryCandidates.memoryType,
+  source: memoryCandidates.source,
+  project: memoryCandidates.project,
+  sensitivity: memoryCandidates.sensitivity,
+  confidence: memoryCandidates.confidence,
+  rejectionReason: memoryCandidates.rejectionReason,
+  captureTime: memoryCandidates.captureTime,
+  updatedAt: memoryCandidates.updatedAt,
+}
+
+function pendingOnly(
+  candidate: CandidateRecord | undefined,
+): CandidateMutationResult | undefined {
+  if (!candidate) {
+    return {
+      ok: false,
+      code: 'NOT_FOUND',
+      message: '候选记忆不存在。',
+    }
+  }
+  if (candidate.status !== 'pending') {
+    return {
+      ok: false,
+      code: 'INVALID_STATE',
+      message: '仅待审核候选可执行该操作。',
+    }
+  }
+  return undefined
 }
 
 export function createDatabase(
@@ -176,6 +240,7 @@ export function createDatabase(
               project text,
               sensitivity text NOT NULL DEFAULT 'normal',
               confidence integer NOT NULL DEFAULT 100,
+              rejection_reason text,
               capture_time timestamptz NOT NULL DEFAULT now(),
               created_at timestamptz NOT NULL DEFAULT now(),
               updated_at timestamptz NOT NULL DEFAULT now()
@@ -212,6 +277,20 @@ export function createDatabase(
             CREATE INDEX IF NOT EXISTS memory_candidates_updated_at_idx
               ON memory_candidates(updated_at DESC);
             INSERT INTO schema_migrations (version) VALUES (2)
+            ON CONFLICT (version) DO NOTHING;
+          `)
+        })
+      }
+
+      const appliedV3 = await client<{ version: number }[]>`
+        SELECT version FROM schema_migrations WHERE version = 3
+      `
+      if (appliedV3.length === 0) {
+        await client.begin(async (transaction) => {
+          await transaction.unsafe(`
+            ALTER TABLE memory_candidates
+              ADD COLUMN IF NOT EXISTS rejection_reason text;
+            INSERT INTO schema_migrations (version) VALUES (3)
             ON CONFLICT (version) DO NOTHING;
           `)
         })
@@ -308,6 +387,7 @@ export function createDatabase(
         project: input.project ?? null,
         sensitivity: 'normal' as const,
         confidence: 100,
+        rejectionReason: null,
         captureTime: input.captureTime ?? now,
         createdAt: now,
         updatedAt: now,
@@ -318,22 +398,98 @@ export function createDatabase(
 
     async listCandidates() {
       const rows = await db
-        .select({
-          id: memoryCandidates.id,
-          status: memoryCandidates.status,
-          title: memoryCandidates.title,
-          body: memoryCandidates.body,
-          memoryType: memoryCandidates.memoryType,
-          source: memoryCandidates.source,
-          project: memoryCandidates.project,
-          sensitivity: memoryCandidates.sensitivity,
-          confidence: memoryCandidates.confidence,
-          captureTime: memoryCandidates.captureTime,
-          updatedAt: memoryCandidates.updatedAt,
-        })
+        .select(candidateSelect)
         .from(memoryCandidates)
         .orderBy(desc(memoryCandidates.updatedAt))
       return rows.map(mapCandidate)
+    },
+
+    async getCandidate(id) {
+      const rows = await db
+        .select(candidateSelect)
+        .from(memoryCandidates)
+        .where(eq(memoryCandidates.id, id))
+        .limit(1)
+      return rows[0] ? mapCandidate(rows[0]) : undefined
+    },
+
+    async updateCandidate(id, input) {
+      const current = await this.getCandidate(id)
+      const blocked = pendingOnly(current)
+      if (blocked) return blocked
+
+      const updatedAt = new Date()
+      await db
+        .update(memoryCandidates)
+        .set({
+          title: input.title,
+          body: input.body,
+          memoryType: input.memoryType,
+          project: input.project ?? null,
+          updatedAt,
+        })
+        .where(eq(memoryCandidates.id, id))
+
+      const candidate = await this.getCandidate(id)
+      if (!candidate) {
+        return {
+          ok: false,
+          code: 'NOT_FOUND',
+          message: '候选记忆不存在。',
+        }
+      }
+      return { ok: true, candidate }
+    },
+
+    async approveCandidate(id) {
+      const current = await this.getCandidate(id)
+      const blocked = pendingOnly(current)
+      if (blocked) return blocked
+
+      const updatedAt = new Date()
+      await db
+        .update(memoryCandidates)
+        .set({
+          status: 'approved',
+          updatedAt,
+        })
+        .where(eq(memoryCandidates.id, id))
+
+      const candidate = await this.getCandidate(id)
+      if (!candidate) {
+        return {
+          ok: false,
+          code: 'NOT_FOUND',
+          message: '候选记忆不存在。',
+        }
+      }
+      return { ok: true, candidate }
+    },
+
+    async rejectCandidate(id, reason) {
+      const current = await this.getCandidate(id)
+      const blocked = pendingOnly(current)
+      if (blocked) return blocked
+
+      const updatedAt = new Date()
+      await db
+        .update(memoryCandidates)
+        .set({
+          status: 'rejected',
+          rejectionReason: reason ?? null,
+          updatedAt,
+        })
+        .where(eq(memoryCandidates.id, id))
+
+      const candidate = await this.getCandidate(id)
+      if (!candidate) {
+        return {
+          ok: false,
+          code: 'NOT_FOUND',
+          message: '候选记忆不存在。',
+        }
+      }
+      return { ok: true, candidate }
     },
   }
 }
@@ -402,6 +558,7 @@ export function createInMemoryAuthStore(passwordHash: string): AuthStore {
         status: 'pending',
         sensitivity: 'normal',
         confidence: 100,
+        rejectionReason: null,
         captureTime: input.captureTime ?? now,
         updatedAt: now,
       }
@@ -412,6 +569,76 @@ export function createInMemoryAuthStore(passwordHash: string): AuthStore {
       return [...candidates].sort(
         (left, right) => right.updatedAt.getTime() - left.updatedAt.getTime(),
       )
+    },
+    async getCandidate(id) {
+      return candidates.find((item) => item.id === id)
+    },
+    async updateCandidate(id, input) {
+      const index = candidates.findIndex((item) => item.id === id)
+      if (index < 0) {
+        return {
+          ok: false,
+          code: 'NOT_FOUND',
+          message: '候选记忆不存在。',
+        }
+      }
+      const current = candidates[index]!
+      const blocked = pendingOnly(current)
+      if (blocked) return blocked
+
+      const updated: CandidateRecord = {
+        ...current,
+        title: input.title,
+        body: input.body,
+        memoryType: input.memoryType,
+        project: input.project ?? null,
+        updatedAt: new Date(),
+      }
+      candidates[index] = updated
+      return { ok: true, candidate: updated }
+    },
+    async approveCandidate(id) {
+      const index = candidates.findIndex((item) => item.id === id)
+      if (index < 0) {
+        return {
+          ok: false,
+          code: 'NOT_FOUND',
+          message: '候选记忆不存在。',
+        }
+      }
+      const current = candidates[index]!
+      const blocked = pendingOnly(current)
+      if (blocked) return blocked
+
+      const updated: CandidateRecord = {
+        ...current,
+        status: 'approved',
+        updatedAt: new Date(),
+      }
+      candidates[index] = updated
+      return { ok: true, candidate: updated }
+    },
+    async rejectCandidate(id, reason) {
+      const index = candidates.findIndex((item) => item.id === id)
+      if (index < 0) {
+        return {
+          ok: false,
+          code: 'NOT_FOUND',
+          message: '候选记忆不存在。',
+        }
+      }
+      const current = candidates[index]!
+      const blocked = pendingOnly(current)
+      if (blocked) return blocked
+
+      const updated: CandidateRecord = {
+        ...current,
+        status: 'rejected',
+        rejectionReason: reason ?? null,
+        updatedAt: new Date(),
+      }
+      candidates[index] = updated
+      return { ok: true, candidate: updated }
     },
   }
 }

@@ -46,17 +46,35 @@ export const CandidateStatusSchema = z.enum([
 
 export const SensitivitySchema = z.enum(['normal', 'private', 'strict'])
 
+const optionalProjectSchema = z
+  .string()
+  .trim()
+  .max(120)
+  .optional()
+  .transform((value) => (value ? value : undefined))
+
 export const CreateCandidateRequestSchema = z.object({
   title: z.string().trim().min(1).max(200),
   body: z.string().trim().min(1).max(20_000),
   memoryType: MemoryTypeSchema,
-  project: z
+  project: optionalProjectSchema,
+  captureTime: z.string().datetime().optional(),
+})
+
+export const UpdateCandidateRequestSchema = z.object({
+  title: z.string().trim().min(1).max(200),
+  body: z.string().trim().min(1).max(20_000),
+  memoryType: MemoryTypeSchema,
+  project: optionalProjectSchema,
+})
+
+export const RejectCandidateRequestSchema = z.object({
+  reason: z
     .string()
     .trim()
-    .max(120)
+    .max(1000)
     .optional()
     .transform((value) => (value ? value : undefined)),
-  captureTime: z.string().datetime().optional(),
 })
 
 export const CandidateSummarySchema = z.object({
@@ -69,6 +87,7 @@ export const CandidateSummarySchema = z.object({
   status: CandidateStatusSchema,
   sensitivity: SensitivitySchema,
   confidence: z.number().int().min(0).max(100),
+  rejectionReason: z.string().nullable(),
   captureTime: z.string().datetime(),
   updatedAt: z.string().datetime(),
 })
@@ -85,6 +104,12 @@ export type CandidateStatus = z.infer<typeof CandidateStatusSchema>
 export type Sensitivity = z.infer<typeof SensitivitySchema>
 export type CreateCandidateRequest = z.infer<
   typeof CreateCandidateRequestSchema
+>
+export type UpdateCandidateRequest = z.infer<
+  typeof UpdateCandidateRequestSchema
+>
+export type RejectCandidateRequest = z.infer<
+  typeof RejectCandidateRequestSchema
 >
 export type CandidateSummary = z.infer<typeof CandidateSummarySchema>
 export type CandidateList = z.infer<typeof CandidateListSchema>

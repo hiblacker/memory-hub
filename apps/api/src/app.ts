@@ -7,9 +7,15 @@ import {
   HomeSummarySchema,
   LoginRequestSchema,
   LoginResponseSchema,
+  RejectCandidateRequestSchema,
+  UpdateCandidateRequestSchema,
   type CandidateSummary,
 } from '@memory-hub/contracts'
-import type { AuthStore, CandidateRecord } from '@memory-hub/database'
+import type {
+  AuthStore,
+  CandidateMutationResult,
+  CandidateRecord,
+} from '@memory-hub/database'
 import Fastify from 'fastify'
 
 import {
@@ -45,9 +51,36 @@ function toCandidateSummary(record: CandidateRecord): CandidateSummary {
     status: record.status,
     sensitivity: record.sensitivity,
     confidence: record.confidence,
+    rejectionReason: record.rejectionReason,
     captureTime: record.captureTime.toISOString(),
     updatedAt: record.updatedAt.toISOString(),
   })
+}
+
+function mutationError(
+  result: Extract<CandidateMutationResult, { ok: false }>,
+) {
+  if (result.code === 'NOT_FOUND') {
+    return {
+      status: 404 as const,
+      body: {
+        error: {
+          code: 'CANDIDATE_NOT_FOUND',
+          message: result.message,
+        },
+      },
+    }
+  }
+
+  return {
+    status: 409 as const,
+    body: {
+      error: {
+        code: 'CANDIDATE_INVALID_STATE',
+        message: result.message,
+      },
+    },
+  }
 }
 
 export function buildApp({
@@ -155,6 +188,27 @@ export function buildApp({
     return reply.send(CandidateListSchema.parse({ items }))
   })
 
+  app.get('/api/v1/candidates/:candidateId', async (request, reply) => {
+    const user = await resolveSessionUser(
+      authStore,
+      request.cookies[SESSION_COOKIE_NAME],
+    )
+    if (!user) return reply.status(401).send(authError)
+
+    const { candidateId } = request.params as { candidateId: string }
+    const candidate = await authStore.getCandidate(candidateId)
+    if (!candidate) {
+      return reply.status(404).send({
+        error: {
+          code: 'CANDIDATE_NOT_FOUND',
+          message: '候选记忆不存在。',
+        },
+      })
+    }
+
+    return reply.send(toCandidateSummary(candidate))
+  })
+
   app.post('/api/v1/candidates', async (request, reply) => {
     const user = await resolveSessionUser(
       authStore,
@@ -184,6 +238,91 @@ export function buildApp({
 
     return reply.status(201).send(toCandidateSummary(created))
   })
+
+  app.patch('/api/v1/candidates/:candidateId', async (request, reply) => {
+    const user = await resolveSessionUser(
+      authStore,
+      request.cookies[SESSION_COOKIE_NAME],
+    )
+    if (!user) return reply.status(401).send(authError)
+
+    const parsed = UpdateCandidateRequestSchema.safeParse(request.body)
+    if (!parsed.success) {
+      return reply.status(400).send({
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: '请提供有效的候选标题、类型和正文。',
+        },
+      })
+    }
+
+    const { candidateId } = request.params as { candidateId: string }
+    const result = await authStore.updateCandidate(candidateId, {
+      title: parsed.data.title,
+      body: parsed.data.body,
+      memoryType: parsed.data.memoryType,
+      ...(parsed.data.project ? { project: parsed.data.project } : {}),
+    })
+    if (!result.ok) {
+      const error = mutationError(result)
+      return reply.status(error.status).send(error.body)
+    }
+
+    return reply.send(toCandidateSummary(result.candidate))
+  })
+
+  app.post(
+    '/api/v1/candidates/:candidateId/approve',
+    async (request, reply) => {
+      const user = await resolveSessionUser(
+        authStore,
+        request.cookies[SESSION_COOKIE_NAME],
+      )
+      if (!user) return reply.status(401).send(authError)
+
+      const { candidateId } = request.params as { candidateId: string }
+      const result = await authStore.approveCandidate(candidateId)
+      if (!result.ok) {
+        const error = mutationError(result)
+        return reply.status(error.status).send(error.body)
+      }
+
+      return reply.send(toCandidateSummary(result.candidate))
+    },
+  )
+
+  app.post(
+    '/api/v1/candidates/:candidateId/reject',
+    async (request, reply) => {
+      const user = await resolveSessionUser(
+        authStore,
+        request.cookies[SESSION_COOKIE_NAME],
+      )
+      if (!user) return reply.status(401).send(authError)
+
+      const parsed = RejectCandidateRequestSchema.safeParse(request.body ?? {})
+      if (!parsed.success) {
+        return reply.status(400).send({
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: '请提供有效的拒绝原因。',
+          },
+        })
+      }
+
+      const { candidateId } = request.params as { candidateId: string }
+      const result = await authStore.rejectCandidate(
+        candidateId,
+        parsed.data.reason,
+      )
+      if (!result.ok) {
+        const error = mutationError(result)
+        return reply.status(error.status).send(error.body)
+      }
+
+      return reply.send(toCandidateSummary(result.candidate))
+    },
+  )
 
   return app
 }

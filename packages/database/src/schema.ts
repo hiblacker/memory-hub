@@ -32,6 +32,7 @@ export const memoryCandidates = pgTable('memory_candidates', {
   project: text('project'),
   sensitivity: text('sensitivity').notNull(),
   confidence: integer('confidence').notNull(),
+  rejectionReason: text('rejection_reason'),
   captureTime: timestamp('capture_time', { withTimezone: true }).notNull(),
   createdAt: timestamp('created_at', { withTimezone: true })
     .notNull()

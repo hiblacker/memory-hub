@@ -8,6 +8,8 @@ import {
   type CreateCandidateRequest,
   type HomeSummary,
   type LoginRequest,
+  type RejectCandidateRequest,
+  type UpdateCandidateRequest,
   type User,
 } from '@memory-hub/contracts'
 
@@ -35,7 +37,8 @@ async function request(path: string, init?: RequestInit): Promise<unknown> {
 
   if (!response.ok) {
     const payload = (await response.json().catch(() => undefined)) as
-      { error?: { code?: string; message?: string } } | undefined
+      | { error?: { code?: string; message?: string } }
+      | undefined
     throw new ApiError(
       response.status,
       payload?.error?.code ?? 'REQUEST_FAILED',
@@ -72,11 +75,54 @@ export async function listCandidates(): Promise<CandidateList> {
   return CandidateListSchema.parse(await request('/api/v1/candidates'))
 }
 
+export async function getCandidate(
+  candidateId: string,
+): Promise<CandidateSummary> {
+  return CandidateSummarySchema.parse(
+    await request(`/api/v1/candidates/${candidateId}`),
+  )
+}
+
 export async function createCandidate(
   input: CreateCandidateRequest,
 ): Promise<CandidateSummary> {
   return CandidateSummarySchema.parse(
     await request('/api/v1/candidates', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    }),
+  )
+}
+
+export async function updateCandidate(
+  candidateId: string,
+  input: UpdateCandidateRequest,
+): Promise<CandidateSummary> {
+  return CandidateSummarySchema.parse(
+    await request(`/api/v1/candidates/${candidateId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(input),
+    }),
+  )
+}
+
+export async function approveCandidate(
+  candidateId: string,
+): Promise<CandidateSummary> {
+  return CandidateSummarySchema.parse(
+    await request(`/api/v1/candidates/${candidateId}/approve`, {
+      method: 'POST',
+      body: JSON.stringify({}),
+    }),
+  )
+}
+
+export async function rejectCandidate(
+  candidateId: string,
+  input: RejectCandidateRequest = {},
+): Promise<CandidateSummary> {
+  return CandidateSummarySchema.parse(
+    await request(`/api/v1/candidates/${candidateId}/reject`, {
       method: 'POST',
       body: JSON.stringify(input),
     }),

@@ -239,10 +239,11 @@ async function signOut() {
             </template>
           </NEmpty>
           <div v-else class="candidate-list">
-            <article
+            <RouterLink
               v-for="item in items"
               :key="item.id"
               class="candidate-card"
+              :to="`/inbox/${item.id}`"
             >
               <div class="candidate-card-top">
                 <h2>{{ item.title }}</h2>
@@ -268,7 +269,7 @@ async function signOut() {
                   更新于 {{ formatTime(item.updatedAt) }}
                 </span>
               </div>
-            </article>
+            </RouterLink>
           </div>
         </section>
 
@@ -280,3 +281,4 @@ async function signOut() {
     </NLayout>
   </NLayout>
 </template>
+
