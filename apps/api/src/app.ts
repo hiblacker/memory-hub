@@ -50,6 +50,15 @@ export function buildApp({
     service: 'memory-hub-api',
   }))
 
+  app.get('/readyz', async (_request, reply) => {
+    const ready = await authStore.isReady()
+    return reply.status(ready ? 200 : 503).send({
+      status: ready ? 'ready' : 'not_ready',
+      service: 'memory-hub-api',
+      database: ready ? 'available' : 'unavailable',
+    })
+  })
+
   app.post('/api/v1/auth/login', async (request, reply) => {
     const parsed = LoginRequestSchema.safeParse(request.body)
     if (!parsed.success) {

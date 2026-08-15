@@ -27,6 +27,16 @@ describe('MemoryHub API', () => {
     })
   })
 
+  it('数据库可用时返回就绪状态', async () => {
+    const response = await app.inject({ method: 'GET', url: '/readyz' })
+    expect(response.statusCode).toBe(200)
+    expect(response.json()).toEqual({
+      status: 'ready',
+      service: 'memory-hub-api',
+      database: 'available',
+    })
+  })
+
   it('拒绝错误凭据', async () => {
     const response = await app.inject({
       method: 'POST',

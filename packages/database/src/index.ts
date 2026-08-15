@@ -27,6 +27,7 @@ export interface HomeCounts {
 }
 
 export interface AuthStore {
+  isReady(): Promise<boolean>
   findUserByUsername(username: string): Promise<DatabaseUser | undefined>
   createUser(user: DatabaseUser): Promise<void>
   updateLastLogin(userId: string): Promise<void>
@@ -57,6 +58,15 @@ export function createDatabase(
   const db = drizzle(client, { schema })
 
   return {
+    async isReady() {
+      try {
+        await client`SELECT 1`
+        return true
+      } catch {
+        return false
+      }
+    },
+
     async initialize() {
       await client.unsafe(`
         CREATE TABLE IF NOT EXISTS schema_migrations (
@@ -194,6 +204,9 @@ export function createInMemoryAuthStore(initialPasswordHash = ''): AuthStore {
   }
   const sessionUsers = new Map<string, { userId: string; expiresAt: Date }>()
   return {
+    async isReady() {
+      return true
+    },
     async findUserByUsername(username) {
       return username === user.username ? user : undefined
     },
