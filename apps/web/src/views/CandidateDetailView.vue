@@ -4,7 +4,6 @@ import {
   NAlert,
   NButton,
   NForm,
-  NFormItem,
   NInput,
   NSelect,
   NSpin,
@@ -146,7 +145,6 @@ const statusType = computed(() => {
 
 function formatTime(value: string) {
   return new Intl.DateTimeFormat('zh-CN', {
-    year: 'numeric',
     month: '2-digit',
     day: '2-digit',
     hour: '2-digit',
@@ -216,7 +214,7 @@ function confirmReject() {
         <div class="detail-sticky-top-right">
           <NTag
             v-if="candidateQuery.data.value"
-            size="medium"
+            size="small"
             :type="statusType"
             :bordered="false"
           >
@@ -226,123 +224,87 @@ function confirmReject() {
       </div>
 
       <div class="detail-page-body">
-        <div class="page-heading detail-heading">
-          <div>
-            <h1>候选详情</h1>
-            <p>预览记忆观感，编辑 Markdown 草稿，并完成批准或拒绝。</p>
-          </div>
-        </div>
-
         <div v-if="candidateQuery.isPending.value" class="page-loading">
           <NSpin size="large" />
           <span>正在加载候选详情</span>
         </div>
 
-        <section
+        <form
           v-else-if="candidateQuery.data.value"
-          class="detail-surface"
+          id="candidate-detail-form"
+          class="detail-main"
+          @submit.prevent="saveDraft"
         >
-          <NAlert v-if="errorMessage" type="error" class="page-alert">
+          <NAlert v-if="errorMessage" type="error" class="page-alert compact">
             {{ errorMessage }}
           </NAlert>
-
-          <div class="detail-meta-grid">
-            <div>
-              <span>来源</span>
-              <strong>{{ candidateQuery.data.value.source }}</strong>
-            </div>
-            <div>
-              <span>类型</span>
-              <strong>{{
-                memoryTypeLabels[candidateQuery.data.value.memoryType]
-              }}</strong>
-            </div>
-            <div>
-              <span>敏感级别</span>
-              <strong>{{
-                sensitivityLabels[candidateQuery.data.value.sensitivity]
-              }}</strong>
-            </div>
-            <div>
-              <span>置信度</span>
-              <strong>{{ candidateQuery.data.value.confidence }}%</strong>
-            </div>
-            <div>
-              <span>捕获时间</span>
-              <strong>{{
-                formatTime(candidateQuery.data.value.captureTime)
-              }}</strong>
-            </div>
-            <div>
-              <span>更新时间</span>
-              <strong>{{
-                formatTime(candidateQuery.data.value.updatedAt)
-              }}</strong>
-            </div>
-          </div>
 
           <NAlert
             v-if="candidateQuery.data.value.rejectionReason"
             type="warning"
-            class="page-alert"
+            class="page-alert compact"
           >
             拒绝原因：{{ candidateQuery.data.value.rejectionReason }}
           </NAlert>
 
-          <NForm
-            id="candidate-detail-form"
-            label-placement="top"
-            @submit.prevent="saveDraft"
-          >
-            <NFormItem label="标题" required>
-              <NInput
-                v-model:value="form.title"
-                size="large"
-                maxlength="200"
-                show-count
-                :disabled="!isPending"
-                placeholder="候选标题"
-              />
-            </NFormItem>
-            <NFormItem label="类型" required>
-              <NSelect
-                v-model:value="form.memoryType"
-                size="large"
-                :options="memoryTypeOptions"
-                :disabled="!isPending"
-              />
-            </NFormItem>
-            <NFormItem label="项目">
-              <NInput
-                v-model:value="form.project"
-                size="large"
-                maxlength="120"
-                :disabled="!isPending"
-                placeholder="可选，例如 memory-hub"
-              />
-            </NFormItem>
-            <NFormItem label="正文" required class="md-body-field">
-              <MemoryMarkdownEditor
-                v-model="form.body"
-                v-model:render-style="form.renderStyle"
-                v-model:emoji-enabled="form.emojiEnabled"
-                :memory-type="form.memoryType"
-                :title="form.title"
-                :readonly="!isPending"
-              />
-            </NFormItem>
-            <NFormItem v-if="isPending" label="拒绝原因（可选）">
-              <NInput
-                v-model:value="form.rejectReason"
-                type="textarea"
-                :autosize="{ minRows: 2, maxRows: 4 }"
-                maxlength="1000"
-                show-count
-                placeholder="例如：信息过时或不应长期保存"
-              />
-            </NFormItem>
-          </NForm>
-        </section>
+          <div class="detail-compact-fields">
+            <NInput
+              v-model:value="form.title"
+              size="medium"
+              maxlength="200"
+              :disabled="!isPending"
+              placeholder="标题"
+              class="detail-title-input"
+            />
+            <NSelect
+              v-model:value="form.memoryType"
+              size="medium"
+              :options="memoryTypeOptions"
+              :disabled="!isPending"
+              class="detail-type-select"
+            />
+            <NInput
+              v-model:value="form.project"
+              size="medium"
+              maxlength="120"
+              :disabled="!isPending"
+              placeholder="项目（可选）"
+              class="detail-project-input"
+            />
+          </div>
+
+          <div class="detail-meta-inline" aria-label="候选属性">
+            <NTag size="small" :bordered="false">
+              来源 {{ candidateQuery.data.value.source }}
+            </NTag>
+            <NTag size="small" :bordered="false">
+              {{ memoryTypeLabels[form.memoryType] }}
+            </NTag>
+            <NTag size="small" :bordered="false">
+              敏感 {{ sensitivityLabels[candidateQuery.data.value.sensitivity] }}
+            </NTag>
+            <NTag size="small" :bordered="false">
+              置信度 {{ candidateQuery.data.value.confidence }}%
+            </NTag>
+            <NTag size="small" :bordered="false">
+              捕获 {{ formatTime(candidateQuery.data.value.captureTime) }}
+            </NTag>
+            <NTag size="small" :bordered="false">
+              更新 {{ formatTime(candidateQuery.data.value.updatedAt) }}
+            </NTag>
+          </div>
+
+          <div class="detail-md-wrap">
+            <MemoryMarkdownEditor
+              v-model="form.body"
+              v-model:render-style="form.renderStyle"
+              v-model:emoji-enabled="form.emojiEnabled"
+              :memory-type="form.memoryType"
+              :title="form.title"
+              :readonly="!isPending"
+            />
+          </div>
+        </form>
 
         <section v-else class="detail-surface">
           <NAlert type="error" class="page-alert">
@@ -353,7 +315,17 @@ function confirmReject() {
 
       <div class="detail-sticky-bottom">
         <div class="detail-actions">
-          <NButton @click="router.push('/inbox')">返回列表</NButton>
+          <div class="detail-actions-left">
+            <NButton @click="router.push('/inbox')">返回列表</NButton>
+            <NInput
+              v-if="candidateQuery.data.value && isPending"
+              v-model:value="form.rejectReason"
+              size="small"
+              maxlength="1000"
+              placeholder="拒绝原因（可选）"
+              class="detail-reject-input"
+            />
+          </div>
           <div class="detail-actions-primary">
             <template v-if="candidateQuery.data.value && isPending">
               <NButton
@@ -384,7 +356,9 @@ function confirmReject() {
               </NButton>
             </template>
             <NButton
-              v-else-if="!candidateQuery.data.value && !candidateQuery.isPending.value"
+              v-else-if="
+                !candidateQuery.data.value && !candidateQuery.isPending.value
+              "
               type="primary"
               @click="router.push('/inbox')"
             >
