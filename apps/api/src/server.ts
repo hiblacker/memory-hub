@@ -10,6 +10,11 @@ const database = createDatabase(config.databaseUrl)
 await database.initialize()
 await ensureAdminUser(database, config.adminUsername, config.adminPassword)
 
+if (config.nodeEnv === 'development') {
+  const seeded = await database.seedDevelopmentMemories()
+  console.log(`[memory-hub-api] seeded ${seeded} development demo memories`)
+}
+
 const app = buildApp({
   authStore: database,
   corsOrigin: config.publicUrl,

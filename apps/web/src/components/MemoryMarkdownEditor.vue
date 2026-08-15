@@ -213,7 +213,7 @@ function insertEmoji(emoji: string) {
           type="textarea"
           :value="modelValue"
           :disabled="isReadonly"
-          :autosize="{ minRows: 12, maxRows: 22 }"
+          :autosize="{ minRows: 28, maxRows: 60 }"
           maxlength="20000"
           show-count
           placeholder="使用 Markdown 编写记忆正文"
@@ -258,5 +258,6 @@ function insertEmoji(emoji: string) {
     </div>
   </div>
 </template>
+
 
 

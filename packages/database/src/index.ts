@@ -8,6 +8,7 @@ import {
   sessions,
   users,
 } from './schema.js'
+import { DEVELOPMENT_DEMO_MEMORIES } from './demo-memories.js'
 
 export interface DatabaseUser {
   id: string
@@ -196,7 +197,7 @@ function pendingOnly(
 
 export function createDatabase(
   databaseUrl: string,
-): AuthStore & { close(): Promise<void>; initialize(): Promise<void> } {
+): AuthStore & { close(): Promise<void>; initialize(): Promise<void>; seedDevelopmentMemories(): Promise<number> } {
   const client = postgres(databaseUrl, { max: 10, prepare: false })
   const db = drizzle(client, { schema })
 
@@ -403,6 +404,50 @@ export function createDatabase(
         queuedDeliveries: Number(queued[0]?.value ?? 0),
         archivedMemories: Number(archived[0]?.value ?? 0),
       }
+    },
+
+    async seedDevelopmentMemories() {
+      const now = new Date()
+      let upserted = 0
+      for (const demo of DEVELOPMENT_DEMO_MEMORIES) {
+        const existing = await this.getCandidate(demo.id)
+        if (existing) {
+          await db
+            .update(memoryCandidates)
+            .set({
+              title: demo.title,
+              body: demo.body,
+              memoryType: demo.memoryType,
+              project: demo.project,
+              renderStyle: demo.renderStyle,
+              emojiEnabled: demo.emojiEnabled,
+              status: 'pending',
+              rejectionReason: null,
+              updatedAt: now,
+            })
+            .where(eq(memoryCandidates.id, demo.id))
+        } else {
+          await db.insert(memoryCandidates).values({
+            id: demo.id,
+            status: 'pending',
+            title: demo.title,
+            body: demo.body,
+            memoryType: demo.memoryType,
+            source: 'manual',
+            project: demo.project,
+            sensitivity: 'normal',
+            confidence: 100,
+            renderStyle: demo.renderStyle,
+            emojiEnabled: demo.emojiEnabled,
+            rejectionReason: null,
+            captureTime: now,
+            createdAt: now,
+            updatedAt: now,
+          })
+        }
+        upserted += 1
+      }
+      return upserted
     },
 
     async createCandidate(input) {
@@ -680,3 +725,5 @@ export function createInMemoryAuthStore(passwordHash: string): AuthStore {
     },
   }
 }
+
+
