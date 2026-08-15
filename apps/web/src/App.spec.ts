@@ -35,13 +35,15 @@ afterEach(() => {
 const demoCandidate = {
   id: 'cand_demo',
   title: '偏好使用 TypeScript',
-  body: '长期技术栈偏好使用 TypeScript 与 Vue 3。',
+  body: '## 📌 关键点\n\n长期技术栈偏好使用 **TypeScript** 与 Vue 3。',
   memoryType: 'preference',
   source: 'manual',
   project: 'memory-hub',
   status: 'pending',
   sensitivity: 'normal',
   confidence: 100,
+  renderStyle: 'xhs_note',
+  emojiEnabled: true,
   rejectionReason: null,
   captureTime: '2026-08-15T10:00:00.000Z',
   updatedAt: '2026-08-15T10:00:00.000Z',
@@ -172,8 +174,13 @@ describe('MemoryHub Web', () => {
     await wrapper
       .get('input[placeholder="例如：偏好使用 TypeScript"]')
       .setValue('偏好使用 TypeScript')
+    const editButtons = wrapper.findAll('button')
+    const editButton = editButtons.find((button) => button.text().includes('编辑'))
+    expect(editButton).toBeTruthy()
+    await editButton!.trigger('click')
+    await flushPromises()
     await wrapper
-      .get('textarea[placeholder="写下需要长期保留的记忆内容"]')
+      .get('textarea[placeholder="使用 Markdown 编写记忆正文"]')
       .setValue('长期技术栈偏好使用 TypeScript 与 Vue 3。')
     await wrapper.get('form').trigger('submit')
     await flushPromises()
@@ -223,8 +230,10 @@ describe('MemoryHub Web', () => {
 
     expect(router.currentRoute.value.path).toBe(`/inbox/${demoCandidate.id}`)
     expect(wrapper.text()).toContain('候选详情')
-    expect(wrapper.text()).toContain('长期技术栈偏好使用 TypeScript 与 Vue 3。')
+    expect(wrapper.text()).toMatch(/长期技术栈偏好使用/)
     expect(wrapper.text()).toContain('批准')
     expect(wrapper.text()).toContain('拒绝')
   })
 })
+
+

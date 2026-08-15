@@ -51,6 +51,8 @@ function toCandidateSummary(record: CandidateRecord): CandidateSummary {
     status: record.status,
     sensitivity: record.sensitivity,
     confidence: record.confidence,
+    renderStyle: record.renderStyle,
+    emojiEnabled: record.emojiEnabled,
     rejectionReason: record.rejectionReason,
     captureTime: record.captureTime.toISOString(),
     updatedAt: record.updatedAt.toISOString(),
@@ -230,6 +232,8 @@ export function buildApp({
       title: parsed.data.title,
       body: parsed.data.body,
       memoryType: parsed.data.memoryType,
+      renderStyle: parsed.data.renderStyle,
+      emojiEnabled: parsed.data.emojiEnabled,
       ...(parsed.data.project ? { project: parsed.data.project } : {}),
       ...(parsed.data.captureTime
         ? { captureTime: new Date(parsed.data.captureTime) }
@@ -261,6 +265,8 @@ export function buildApp({
       title: parsed.data.title,
       body: parsed.data.body,
       memoryType: parsed.data.memoryType,
+      renderStyle: parsed.data.renderStyle,
+      emojiEnabled: parsed.data.emojiEnabled,
       ...(parsed.data.project ? { project: parsed.data.project } : {}),
     })
     if (!result.ok) {
@@ -326,3 +332,4 @@ export function buildApp({
 
   return app
 }
+

@@ -44,6 +44,7 @@ export type CandidateStatus =
   | 'conflict'
 
 export type Sensitivity = 'normal' | 'private' | 'strict'
+export type RenderStyle = 'xhs_note' | 'tech_clean'
 
 export interface CandidateRecord {
   id: string
@@ -55,6 +56,8 @@ export interface CandidateRecord {
   status: CandidateStatus
   sensitivity: Sensitivity
   confidence: number
+  renderStyle: RenderStyle
+  emojiEnabled: boolean
   rejectionReason: string | null
   captureTime: Date
   updatedAt: Date
@@ -66,6 +69,8 @@ export interface CreateCandidateInput {
   memoryType: MemoryType
   project?: string | undefined
   captureTime?: Date | undefined
+  renderStyle?: RenderStyle | undefined
+  emojiEnabled?: boolean | undefined
 }
 
 export interface UpdateCandidateInput {
@@ -73,6 +78,8 @@ export interface UpdateCandidateInput {
   body: string
   memoryType: MemoryType
   project?: string | undefined
+  renderStyle: RenderStyle
+  emojiEnabled: boolean
 }
 
 export type CandidateMutationResult =
@@ -126,6 +133,8 @@ function mapCandidate(row: {
   project: string | null
   sensitivity: string
   confidence: number
+  renderStyle: string
+  emojiEnabled: boolean
   rejectionReason: string | null
   captureTime: Date
   updatedAt: Date
@@ -140,6 +149,8 @@ function mapCandidate(row: {
     status: row.status as CandidateStatus,
     sensitivity: row.sensitivity as Sensitivity,
     confidence: row.confidence,
+    renderStyle: (row.renderStyle as RenderStyle) || 'xhs_note',
+    emojiEnabled: row.emojiEnabled ?? true,
     rejectionReason: row.rejectionReason,
     captureTime: row.captureTime,
     updatedAt: row.updatedAt,
@@ -156,6 +167,8 @@ const candidateSelect = {
   project: memoryCandidates.project,
   sensitivity: memoryCandidates.sensitivity,
   confidence: memoryCandidates.confidence,
+  renderStyle: memoryCandidates.renderStyle,
+  emojiEnabled: memoryCandidates.emojiEnabled,
   rejectionReason: memoryCandidates.rejectionReason,
   captureTime: memoryCandidates.captureTime,
   updatedAt: memoryCandidates.updatedAt,
@@ -240,6 +253,8 @@ export function createDatabase(
               project text,
               sensitivity text NOT NULL DEFAULT 'normal',
               confidence integer NOT NULL DEFAULT 100,
+              render_style text NOT NULL DEFAULT 'xhs_note',
+              emoji_enabled boolean NOT NULL DEFAULT true,
               rejection_reason text,
               capture_time timestamptz NOT NULL DEFAULT now(),
               created_at timestamptz NOT NULL DEFAULT now(),
@@ -291,6 +306,21 @@ export function createDatabase(
             ALTER TABLE memory_candidates
               ADD COLUMN IF NOT EXISTS rejection_reason text;
             INSERT INTO schema_migrations (version) VALUES (3)
+            ON CONFLICT (version) DO NOTHING;
+          `)
+        })
+      }
+
+      const appliedV4 = await client<{ version: number }[]>`
+        SELECT version FROM schema_migrations WHERE version = 4
+      `
+      if (appliedV4.length === 0) {
+        await client.begin(async (transaction) => {
+          await transaction.unsafe(`
+            ALTER TABLE memory_candidates
+              ADD COLUMN IF NOT EXISTS render_style text NOT NULL DEFAULT 'xhs_note',
+              ADD COLUMN IF NOT EXISTS emoji_enabled boolean NOT NULL DEFAULT true;
+            INSERT INTO schema_migrations (version) VALUES (4)
             ON CONFLICT (version) DO NOTHING;
           `)
         })
@@ -387,6 +417,8 @@ export function createDatabase(
         project: input.project ?? null,
         sensitivity: 'normal' as const,
         confidence: 100,
+        renderStyle: input.renderStyle ?? 'xhs_note',
+        emojiEnabled: input.emojiEnabled ?? true,
         rejectionReason: null,
         captureTime: input.captureTime ?? now,
         createdAt: now,
@@ -426,6 +458,8 @@ export function createDatabase(
           body: input.body,
           memoryType: input.memoryType,
           project: input.project ?? null,
+          renderStyle: input.renderStyle,
+          emojiEnabled: input.emojiEnabled,
           updatedAt,
         })
         .where(eq(memoryCandidates.id, id))
@@ -558,6 +592,8 @@ export function createInMemoryAuthStore(passwordHash: string): AuthStore {
         status: 'pending',
         sensitivity: 'normal',
         confidence: 100,
+        renderStyle: input.renderStyle ?? 'xhs_note',
+        emojiEnabled: input.emojiEnabled ?? true,
         rejectionReason: null,
         captureTime: input.captureTime ?? now,
         updatedAt: now,
@@ -592,6 +628,8 @@ export function createInMemoryAuthStore(passwordHash: string): AuthStore {
         body: input.body,
         memoryType: input.memoryType,
         project: input.project ?? null,
+        renderStyle: input.renderStyle,
+        emojiEnabled: input.emojiEnabled,
         updatedAt: new Date(),
       }
       candidates[index] = updated

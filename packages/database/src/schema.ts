@@ -1,4 +1,4 @@
-import { integer, pgTable, text, timestamp } from 'drizzle-orm/pg-core'
+import { boolean, integer, pgTable, text, timestamp } from 'drizzle-orm/pg-core'
 
 export const users = pgTable('users', {
   id: text('id').primaryKey(),
@@ -32,6 +32,8 @@ export const memoryCandidates = pgTable('memory_candidates', {
   project: text('project'),
   sensitivity: text('sensitivity').notNull(),
   confidence: integer('confidence').notNull(),
+  renderStyle: text('render_style').notNull().default('xhs_note'),
+  emojiEnabled: boolean('emoji_enabled').notNull().default(true),
   rejectionReason: text('rejection_reason'),
   captureTime: timestamp('capture_time', { withTimezone: true }).notNull(),
   createdAt: timestamp('created_at', { withTimezone: true })

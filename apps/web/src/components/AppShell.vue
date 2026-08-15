@@ -1,0 +1,144 @@
+<script setup lang="ts">
+import {
+  Bot,
+  BookOpenCheck,
+  ChevronDown,
+  CirclePlus,
+  FileInput,
+  Inbox,
+  LogOut,
+  ShieldCheck,
+} from 'lucide-vue-next'
+import { NButton, NLayout, NLayoutContent, NLayoutHeader, NLayoutSider, NTag } from 'naive-ui'
+import { useQuery } from '@tanstack/vue-query'
+import { useRouter } from 'vue-router'
+
+import { getHomeSummary } from '../api'
+import { homeQueryKey, useLogoutMutation } from '../queries'
+
+const props = defineProps<{
+  activeNav: 'inbox' | 'capture'
+  title: string
+  context: string
+}>()
+
+const router = useRouter()
+const logoutMutation = useLogoutMutation()
+const homeQuery = useQuery({
+  queryKey: homeQueryKey,
+  queryFn: getHomeSummary,
+})
+
+async function signOut() {
+  await logoutMutation.mutateAsync()
+  await router.replace('/login')
+}
+</script>
+
+<template>
+  <NLayout has-sider class="app-shell">
+    <NLayoutSider
+      bordered
+      collapse-mode="width"
+      :width="248"
+      :native-scrollbar="false"
+      class="app-sider"
+    >
+      <div class="sider-inner">
+        <div class="brand-lockup compact">
+          <span class="brand-mark" aria-hidden="true">M</span>
+          <div class="brand-copy">
+            <strong>MemoryHub</strong>
+            <small>记忆收件箱</small>
+          </div>
+        </div>
+
+        <nav class="side-nav" aria-label="主导航">
+          <p class="nav-section">工作区</p>
+          <RouterLink
+            class="nav-item"
+            :class="{ active: activeNav === 'inbox' }"
+            to="/inbox"
+          >
+            <Inbox :size="17" aria-hidden="true" />
+            <span>候选收件箱</span>
+            <em
+              v-if="(homeQuery.data.value?.counts.pendingCandidates ?? 0) > 0"
+              class="nav-count"
+            >
+              {{ homeQuery.data.value?.counts.pendingCandidates }}
+            </em>
+          </RouterLink>
+          <RouterLink
+            class="nav-item"
+            :class="{ active: activeNav === 'capture' }"
+            to="/capture"
+          >
+            <CirclePlus :size="17" aria-hidden="true" />
+            <span>手动录入</span>
+          </RouterLink>
+          <div class="nav-item disabled" title="后续版本开放">
+            <BookOpenCheck :size="17" aria-hidden="true" />
+            <span>归档记录</span>
+          </div>
+
+          <p class="nav-section">配置</p>
+          <div class="nav-item disabled" title="后续版本开放">
+            <ShieldCheck :size="17" aria-hidden="true" />
+            <span>自动归档规则</span>
+          </div>
+          <div class="nav-item disabled" title="后续版本开放">
+            <FileInput :size="17" aria-hidden="true" />
+            <span>来源与导入</span>
+          </div>
+          <div class="nav-item disabled" title="后续版本开放">
+            <Bot :size="17" aria-hidden="true" />
+            <span>系统设置</span>
+          </div>
+        </nav>
+
+        <div class="sider-footer">
+          <NTag size="small" type="success" :bordered="false">服务运行正常</NTag>
+          <span>PostgreSQL 已连接</span>
+        </div>
+      </div>
+    </NLayoutSider>
+
+    <NLayout>
+      <NLayoutHeader class="app-header" bordered>
+        <div>
+          <strong>{{ title }}</strong>
+          <span class="header-context">{{ context }}</span>
+        </div>
+        <div class="header-actions">
+          <slot name="header-actions" />
+          <NTag size="small" type="warning" :bordered="false">
+            <template #icon><BookOpenCheck :size="14" /></template>
+            思源待配置
+          </NTag>
+          <NButton
+            quaternary
+            size="small"
+            :loading="logoutMutation.isPending.value"
+            @click="signOut"
+          >
+            <template #icon><LogOut :size="16" /></template>
+            退出
+          </NButton>
+          <button class="user-chip" type="button" aria-label="当前管理员">
+            <span class="user-avatar">{{
+              homeQuery.data.value?.user.username.slice(0, 1).toUpperCase() ??
+              'A'
+            }}</span>
+            <span>{{ homeQuery.data.value?.user.username ?? 'admin' }}</span>
+            <ChevronDown :size="14" aria-hidden="true" />
+          </button>
+        </div>
+      </NLayoutHeader>
+
+      <NLayoutContent class="workspace-content">
+        <slot />
+      </NLayoutContent>
+    </NLayout>
+  </NLayout>
+</template>

@@ -46,6 +46,8 @@ export const CandidateStatusSchema = z.enum([
 
 export const SensitivitySchema = z.enum(['normal', 'private', 'strict'])
 
+export const RenderStyleSchema = z.enum(['xhs_note', 'tech_clean'])
+
 const optionalProjectSchema = z
   .string()
   .trim()
@@ -53,20 +55,21 @@ const optionalProjectSchema = z
   .optional()
   .transform((value) => (value ? value : undefined))
 
-export const CreateCandidateRequestSchema = z.object({
+const candidateBodyFields = {
   title: z.string().trim().min(1).max(200),
   body: z.string().trim().min(1).max(20_000),
   memoryType: MemoryTypeSchema,
   project: optionalProjectSchema,
+  renderStyle: RenderStyleSchema.default('xhs_note'),
+  emojiEnabled: z.boolean().default(true),
+}
+
+export const CreateCandidateRequestSchema = z.object({
+  ...candidateBodyFields,
   captureTime: z.string().datetime().optional(),
 })
 
-export const UpdateCandidateRequestSchema = z.object({
-  title: z.string().trim().min(1).max(200),
-  body: z.string().trim().min(1).max(20_000),
-  memoryType: MemoryTypeSchema,
-  project: optionalProjectSchema,
-})
+export const UpdateCandidateRequestSchema = z.object(candidateBodyFields)
 
 export const RejectCandidateRequestSchema = z.object({
   reason: z
@@ -87,6 +90,8 @@ export const CandidateSummarySchema = z.object({
   status: CandidateStatusSchema,
   sensitivity: SensitivitySchema,
   confidence: z.number().int().min(0).max(100),
+  renderStyle: RenderStyleSchema,
+  emojiEnabled: z.boolean(),
   rejectionReason: z.string().nullable(),
   captureTime: z.string().datetime(),
   updatedAt: z.string().datetime(),
@@ -102,6 +107,7 @@ export type HomeSummary = z.infer<typeof HomeSummarySchema>
 export type MemoryType = z.infer<typeof MemoryTypeSchema>
 export type CandidateStatus = z.infer<typeof CandidateStatusSchema>
 export type Sensitivity = z.infer<typeof SensitivitySchema>
+export type RenderStyle = z.infer<typeof RenderStyleSchema>
 export type CreateCandidateRequest = z.infer<
   typeof CreateCandidateRequestSchema
 >
