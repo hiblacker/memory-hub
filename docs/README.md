@@ -21,6 +21,8 @@
 11. [Vue 状态管理工具调研](11-frontend-state-management.md)
 12. [前端交互设计图](12-frontend-interaction-design.md)
 
+当前实现进度：数据库初始化、单管理员登录、服务端会话、登录页和候选收件箱首页已完成。后续按 [V1 范围与开发顺序](06-v1-scope.md) 继续实现思源纵向切片和人工归档闭环。
+
 ## 已确认决策
 
 - [x] 接受 Vue 3 + Vite + Fastify + PostgreSQL 的单一 TypeScript 技术栈。
