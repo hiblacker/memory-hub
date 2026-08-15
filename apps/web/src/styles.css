@@ -25,10 +25,16 @@
   box-sizing: border-box;
 }
 
+html,
+body,
+#app {
+  height: 100%;
+}
+
 body {
   margin: 0;
   min-width: 320px;
-  min-height: 100vh;
+  min-height: 100%;
   background: var(--mh-bg);
 }
 
@@ -115,12 +121,31 @@ input {
 }
 
 .app-shell {
-  min-height: 100vh;
+  position: absolute !important;
+  inset: 0;
+  height: 100%;
+  max-height: 100%;
+  overflow: hidden;
   background: var(--mh-bg);
 }
 
+.app-shell > .n-layout-scroll-container {
+  height: 100%;
+  overflow: hidden;
+}
+
 .app-sider {
+  height: 100% !important;
+  max-height: 100%;
+  overflow: hidden;
   background: linear-gradient(180deg, #ffffff 0%, #f7fafc 100%);
+}
+
+.app-sider .n-layout-sider-scroll-container,
+.app-sider .n-scrollbar,
+.app-sider .n-scrollbar-container,
+.app-sider .n-scrollbar-content {
+  height: 100%;
 }
 
 .app-sider .n-layout-sider-scroll-container {
@@ -129,11 +154,30 @@ input {
 }
 
 .sider-inner {
+  height: 100%;
   min-height: 100%;
   display: flex;
   flex-direction: column;
   padding: 16px 14px 14px;
   gap: 8px;
+  overflow: hidden;
+}
+
+.app-main {
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-main > .n-layout-scroll-container {
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .brand-lockup.compact {
@@ -246,6 +290,7 @@ input {
 
 .app-header {
   height: 64px;
+  flex: none;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -289,8 +334,16 @@ input {
 }
 
 .workspace-content {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto !important;
   padding: 28px 30px 22px;
   background: var(--mh-bg);
+}
+
+.workspace-content > .n-layout-scroll-container,
+.workspace-content .n-scrollbar-container {
+  min-height: 100%;
 }
 
 .page-heading {
@@ -390,7 +443,7 @@ input {
 
 @media (max-width: 800px) {
   .app-sider {
-    display: none;
+    display: none !important;
   }
 
   .workspace-content {
@@ -833,3 +886,4 @@ body.md-fullscreen-open {
     border-bottom: 1px solid var(--mh-border);
   }
 }
+

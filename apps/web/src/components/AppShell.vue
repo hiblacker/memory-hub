@@ -9,14 +9,21 @@ import {
   LogOut,
   ShieldCheck,
 } from 'lucide-vue-next'
-import { NButton, NLayout, NLayoutContent, NLayoutHeader, NLayoutSider, NTag } from 'naive-ui'
+import {
+  NButton,
+  NLayout,
+  NLayoutContent,
+  NLayoutHeader,
+  NLayoutSider,
+  NTag,
+} from 'naive-ui'
 import { useQuery } from '@tanstack/vue-query'
 import { useRouter } from 'vue-router'
 
 import { getHomeSummary } from '../api'
 import { homeQueryKey, useLogoutMutation } from '../queries'
 
-const props = defineProps<{
+defineProps<{
   activeNav: 'inbox' | 'capture'
   title: string
   context: string
@@ -36,7 +43,7 @@ async function signOut() {
 </script>
 
 <template>
-  <NLayout has-sider class="app-shell">
+  <NLayout has-sider position="absolute" class="app-shell">
     <NLayoutSider
       bordered
       collapse-mode="width"
@@ -104,7 +111,7 @@ async function signOut() {
       </div>
     </NLayoutSider>
 
-    <NLayout>
+    <NLayout class="app-main">
       <NLayoutHeader class="app-header" bordered>
         <div>
           <strong>{{ title }}</strong>
@@ -136,7 +143,11 @@ async function signOut() {
         </div>
       </NLayoutHeader>
 
-      <NLayoutContent class="workspace-content">
+      <NLayoutContent
+        class="workspace-content"
+        :native-scrollbar="true"
+        content-style="min-height: 100%;"
+      >
         <slot />
       </NLayoutContent>
     </NLayout>
