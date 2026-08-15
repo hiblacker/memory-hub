@@ -58,6 +58,7 @@ Planned packages such as `database`, `core`, `siyuan`, `llm`, and `security` sho
 5. Update shared contracts before or with API behavior changes.
 6. Update documentation, `.env.example`, migrations, and deployment files when their contracts change.
 7. Run focused checks during development, then the full quality gate before finishing a cross-package or user-facing change.
+8. Complete and submit one independently reviewable feature block at a time. After its focused checks pass, create a Conventional Commit and push it to the configured remote branch immediately; do not accumulate unrelated feature blocks in one local-only change set.
 
 Use `pnpm` only. Do not introduce npm or Yarn lockfiles. Do not remove the Web package's `--configLoader runner` flags; they are required by the current Windows-compatible Vite/Vitest setup.
 
@@ -160,6 +161,14 @@ pnpm build
 ```
 
 Use `pnpm format` only when formatting is intentionally part of the change. Avoid formatting unrelated files.
+
+### Commit And Push Cadence
+
+- Keep each commit limited to one independently reviewable feature, fix, documentation change, or configuration change.
+- Run the focused checks for that block before committing; run the full quality gate before completing a cross-package or user-facing milestone.
+- Use a Conventional Commit message and push the successful commit to the current configured remote branch immediately.
+- Never push secrets, production data, generated build output, or unreviewed unrelated changes.
+- If a push fails, report the remote error and do not claim the change is delivered until the remote state is verified.
 
 ## Dependency And Configuration Changes
 
