@@ -1,6 +1,11 @@
 import {
+  CandidateListSchema,
+  CandidateSummarySchema,
   HomeSummarySchema,
   LoginResponseSchema,
+  type CandidateList,
+  type CandidateSummary,
+  type CreateCandidateRequest,
   type HomeSummary,
   type LoginRequest,
   type User,
@@ -61,4 +66,19 @@ export async function logout(): Promise<void> {
 
 export async function getHomeSummary(): Promise<HomeSummary> {
   return HomeSummarySchema.parse(await request('/api/v1/home'))
+}
+
+export async function listCandidates(): Promise<CandidateList> {
+  return CandidateListSchema.parse(await request('/api/v1/candidates'))
+}
+
+export async function createCandidate(
+  input: CreateCandidateRequest,
+): Promise<CandidateSummary> {
+  return CandidateSummarySchema.parse(
+    await request('/api/v1/candidates', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    }),
+  )
 }

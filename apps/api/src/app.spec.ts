@@ -16,6 +16,16 @@ afterAll(async () => {
   await app.close()
 })
 
+async function loginCookie() {
+  const login = await app.inject({
+    method: 'POST',
+    url: '/api/v1/auth/login',
+    payload: { username: 'admin', password: 'correct-password' },
+  })
+  const cookie = login.cookies.find((item) => item.name === 'memoryhub_session')
+  return cookie?.value ?? ''
+}
+
 describe('MemoryHub API', () => {
   it('返回运行阶段健康状态', async () => {
     const response = await app.inject({ method: 'GET', url: '/healthz' })
@@ -47,7 +57,7 @@ describe('MemoryHub API', () => {
     expect(response.json().error.code).toBe('AUTH_INVALID_CREDENTIALS')
   })
 
-  it('登录后可以读取首页并退出', async () => {
+  it('登录后可读取首页并退出', async () => {
     const login = await app.inject({
       method: 'POST',
       url: '/api/v1/auth/login',
@@ -86,5 +96,61 @@ describe('MemoryHub API', () => {
     const response = await app.inject({ method: 'GET', url: '/api/v1/home' })
     expect(response.statusCode).toBe(401)
     expect(response.json().error.code).toBe('AUTH_UNAUTHORIZED')
+  })
+
+  it('创建手动候选后可在列表和首页统计中看到', async () => {
+    const cookie = await loginCookie()
+    const created = await app.inject({
+      method: 'POST',
+      url: '/api/v1/candidates',
+      cookies: { memoryhub_session: cookie },
+      payload: {
+        title: '偏好使用 TypeScript',
+        body: '长期技术栈偏好使用 TypeScript 与 Vue 3。',
+        memoryType: 'preference',
+        project: 'memory-hub',
+      },
+    })
+    expect(created.statusCode).toBe(201)
+    expect(created.json()).toMatchObject({
+      title: '偏好使用 TypeScript',
+      memoryType: 'preference',
+      source: 'manual',
+      status: 'pending',
+      project: 'memory-hub',
+      confidence: 100,
+    })
+
+    const list = await app.inject({
+      method: 'GET',
+      url: '/api/v1/candidates',
+      cookies: { memoryhub_session: cookie },
+    })
+    expect(list.statusCode).toBe(200)
+    expect(list.json().items).toHaveLength(1)
+    expect(list.json().items[0].title).toBe('偏好使用 TypeScript')
+
+    const home = await app.inject({
+      method: 'GET',
+      url: '/api/v1/home',
+      cookies: { memoryhub_session: cookie },
+    })
+    expect(home.json().counts.pendingCandidates).toBe(1)
+  })
+
+  it('拒绝无效的候选输入', async () => {
+    const cookie = await loginCookie()
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/v1/candidates',
+      cookies: { memoryhub_session: cookie },
+      payload: {
+        title: '',
+        body: '',
+        memoryType: 'unknown',
+      },
+    })
+    expect(response.statusCode).toBe(400)
+    expect(response.json().error.code).toBe('VALIDATION_ERROR')
   })
 })

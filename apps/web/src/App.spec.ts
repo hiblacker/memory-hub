@@ -57,6 +57,9 @@ describe('MemoryHub Web', () => {
       if (url.endsWith('/api/v1/auth/login')) {
         return jsonResponse({ user: { id: 'usr_admin', username: 'admin' } })
       }
+      if (url.endsWith('/api/v1/auth/me')) {
+        return jsonResponse({ user: { id: 'usr_admin', username: 'admin' } })
+      }
       if (url.endsWith('/api/v1/home')) {
         return jsonResponse({
           user: { id: 'usr_admin', username: 'admin' },
@@ -66,6 +69,9 @@ describe('MemoryHub Web', () => {
             archivedMemories: 0,
           },
         })
+      }
+      if (url.endsWith('/api/v1/candidates')) {
+        return jsonResponse({ items: [] })
       }
       return jsonResponse({ error: { code: 'NOT_FOUND' } }, 404)
     })
@@ -109,5 +115,69 @@ describe('MemoryHub Web', () => {
 
     expect(router.currentRoute.value.path).toBe('/login')
     expect(wrapper.text()).toContain('用户名或密码错误。')
+  })
+
+  it('可手动录入候选并返回收件箱', async () => {
+    const created = {
+      id: 'cand_demo',
+      title: '偏好使用 TypeScript',
+      body: '长期技术栈偏好使用 TypeScript 与 Vue 3。',
+      memoryType: 'preference',
+      source: 'manual',
+      project: 'memory-hub',
+      status: 'pending',
+      sensitivity: 'normal',
+      confidence: 100,
+      captureTime: '2026-08-15T10:00:00.000Z',
+      updatedAt: '2026-08-15T10:00:00.000Z',
+    }
+    let candidates = [] as (typeof created)[]
+
+    const fetchMock = vi.fn(
+      async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = String(input)
+        if (url.endsWith('/api/v1/auth/me')) {
+          return jsonResponse({ user: { id: 'usr_admin', username: 'admin' } })
+        }
+        if (url.endsWith('/api/v1/home')) {
+          return jsonResponse({
+            user: { id: 'usr_admin', username: 'admin' },
+            counts: {
+              pendingCandidates: candidates.length,
+              queuedDeliveries: 0,
+              archivedMemories: 0,
+            },
+          })
+        }
+        if (
+          url.endsWith('/api/v1/candidates') &&
+          (!init || !init.method || init.method === 'GET')
+        ) {
+          return jsonResponse({ items: candidates })
+        }
+        if (url.endsWith('/api/v1/candidates') && init?.method === 'POST') {
+          candidates = [created]
+          return jsonResponse(created, 201)
+        }
+        return jsonResponse({ error: { code: 'NOT_FOUND' } }, 404)
+      },
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    const { wrapper, router } = await mountAt('/capture')
+    expect(wrapper.text()).toContain('手动录入候选记忆')
+
+    await wrapper
+      .get('input[placeholder="例如：偏好使用 TypeScript"]')
+      .setValue('偏好使用 TypeScript')
+    await wrapper
+      .get('textarea[placeholder="写下需要长期保留的记忆内容"]')
+      .setValue('长期技术栈偏好使用 TypeScript 与 Vue 3。')
+    await wrapper.get('form').trigger('submit')
+    await flushPromises()
+
+    expect(router.currentRoute.value.path).toBe('/inbox')
+    expect(wrapper.text()).toContain('偏好使用 TypeScript')
+    expect(wrapper.text()).toContain('待审核')
   })
 })

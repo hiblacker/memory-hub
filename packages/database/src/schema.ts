@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp } from 'drizzle-orm/pg-core'
+import { integer, pgTable, text, timestamp } from 'drizzle-orm/pg-core'
 
 export const users = pgTable('users', {
   id: text('id').primaryKey(),
@@ -25,7 +25,18 @@ export const sessions = pgTable('sessions', {
 export const memoryCandidates = pgTable('memory_candidates', {
   id: text('id').primaryKey(),
   status: text('status').notNull(),
+  title: text('title').notNull(),
+  body: text('body').notNull(),
+  memoryType: text('memory_type').notNull(),
+  source: text('source').notNull(),
+  project: text('project'),
+  sensitivity: text('sensitivity').notNull(),
+  confidence: integer('confidence').notNull(),
+  captureTime: timestamp('capture_time', { withTimezone: true }).notNull(),
   createdAt: timestamp('created_at', { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true })
     .notNull()
     .defaultNow(),
 })

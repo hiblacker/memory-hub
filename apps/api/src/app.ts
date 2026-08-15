@@ -1,11 +1,15 @@
 import cookie from '@fastify/cookie'
 import cors from '@fastify/cors'
 import {
+  CandidateListSchema,
+  CandidateSummarySchema,
+  CreateCandidateRequestSchema,
   HomeSummarySchema,
   LoginRequestSchema,
   LoginResponseSchema,
+  type CandidateSummary,
 } from '@memory-hub/contracts'
-import type { AuthStore } from '@memory-hub/database'
+import type { AuthStore, CandidateRecord } from '@memory-hub/database'
 import Fastify from 'fastify'
 
 import {
@@ -28,6 +32,22 @@ const authError = {
     code: 'AUTH_UNAUTHORIZED',
     message: '请先登录。',
   },
+}
+
+function toCandidateSummary(record: CandidateRecord): CandidateSummary {
+  return CandidateSummarySchema.parse({
+    id: record.id,
+    title: record.title,
+    body: record.body,
+    memoryType: record.memoryType,
+    source: record.source,
+    project: record.project,
+    status: record.status,
+    sensitivity: record.sensitivity,
+    confidence: record.confidence,
+    captureTime: record.captureTime.toISOString(),
+    updatedAt: record.updatedAt.toISOString(),
+  })
 }
 
 export function buildApp({
@@ -65,7 +85,7 @@ export function buildApp({
       return reply.status(400).send({
         error: {
           code: 'VALIDATION_ERROR',
-          message: '请输入有效的用户名和密码。',
+          message: '请提供有效的用户名和密码。',
         },
       })
     }
@@ -123,6 +143,46 @@ export function buildApp({
     if (!user) return reply.status(401).send(authError)
     const counts = await authStore.getHomeCounts()
     return reply.send(HomeSummarySchema.parse({ user, counts }))
+  })
+
+  app.get('/api/v1/candidates', async (request, reply) => {
+    const user = await resolveSessionUser(
+      authStore,
+      request.cookies[SESSION_COOKIE_NAME],
+    )
+    if (!user) return reply.status(401).send(authError)
+    const items = (await authStore.listCandidates()).map(toCandidateSummary)
+    return reply.send(CandidateListSchema.parse({ items }))
+  })
+
+  app.post('/api/v1/candidates', async (request, reply) => {
+    const user = await resolveSessionUser(
+      authStore,
+      request.cookies[SESSION_COOKIE_NAME],
+    )
+    if (!user) return reply.status(401).send(authError)
+
+    const parsed = CreateCandidateRequestSchema.safeParse(request.body)
+    if (!parsed.success) {
+      return reply.status(400).send({
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: '请提供有效的候选标题、类型和正文。',
+        },
+      })
+    }
+
+    const created = await authStore.createCandidate({
+      title: parsed.data.title,
+      body: parsed.data.body,
+      memoryType: parsed.data.memoryType,
+      ...(parsed.data.project ? { project: parsed.data.project } : {}),
+      ...(parsed.data.captureTime
+        ? { captureTime: new Date(parsed.data.captureTime) }
+        : {}),
+    })
+
+    return reply.status(201).send(toCandidateSummary(created))
   })
 
   return app

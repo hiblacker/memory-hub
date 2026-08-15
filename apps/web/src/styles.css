@@ -398,3 +398,65 @@ input {
     width: 100%;
   }
 }
+
+.candidate-list {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+}
+
+.candidate-card {
+  border: 1px solid #d7e2da;
+  border-radius: 10px;
+  background: #fbfdfb;
+  padding: 16px;
+}
+
+.candidate-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.candidate-card-top h2 {
+  margin: 0;
+  font-size: 1.05rem;
+  line-height: 1.4;
+}
+
+.candidate-body {
+  margin: 10px 0 12px;
+  color: #4b5f55;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+.candidate-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.candidate-time {
+  color: #6a7c73;
+  font-size: 0.86rem;
+}
+
+.capture-surface {
+  border: 1px solid #d7e2da;
+  border-radius: 12px;
+  background: #fbfdfb;
+  padding: 20px;
+}
+
+.capture-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.nav-item {
+  text-decoration: none;
+}
