@@ -1,10 +1,5 @@
 <script setup lang="ts">
-import {
-  ArrowLeft,
-  Check,
-  Save,
-  X,
-} from 'lucide-vue-next'
+import { ArrowLeft, Check, Save, X } from 'lucide-vue-next'
 import {
   NAlert,
   NButton,
@@ -212,171 +207,192 @@ function confirmReject() {
 
 <template>
   <AppShell active-nav="inbox" title="候选详情" context="审核与整理">
-    <div class="page-heading">
-      <div>
+    <div class="detail-page">
+      <div class="detail-sticky-top">
         <NButton quaternary class="back-link" @click="router.push('/inbox')">
           <template #icon><ArrowLeft :size="16" /></template>
           返回收件箱
         </NButton>
-        <h1>候选详情</h1>
-        <p>预览记忆观感，编辑 Markdown 草稿，并完成批准或拒绝。</p>
-      </div>
-      <NTag
-        v-if="candidateQuery.data.value"
-        size="medium"
-        :type="statusType"
-        :bordered="false"
-      >
-        {{ statusLabels[candidateQuery.data.value.status] }}
-      </NTag>
-    </div>
-
-    <div v-if="candidateQuery.isPending.value" class="page-loading">
-      <NSpin size="large" />
-      <span>正在加载候选详情</span>
-    </div>
-
-    <section v-else-if="candidateQuery.data.value" class="detail-surface">
-      <NAlert v-if="errorMessage" type="error" class="page-alert">
-        {{ errorMessage }}
-      </NAlert>
-
-      <div class="detail-meta-grid">
-        <div>
-          <span>来源</span>
-          <strong>{{ candidateQuery.data.value.source }}</strong>
-        </div>
-        <div>
-          <span>类型</span>
-          <strong>{{
-            memoryTypeLabels[candidateQuery.data.value.memoryType]
-          }}</strong>
-        </div>
-        <div>
-          <span>敏感级别</span>
-          <strong>{{
-            sensitivityLabels[candidateQuery.data.value.sensitivity]
-          }}</strong>
-        </div>
-        <div>
-          <span>置信度</span>
-          <strong>{{ candidateQuery.data.value.confidence }}%</strong>
-        </div>
-        <div>
-          <span>捕获时间</span>
-          <strong>{{
-            formatTime(candidateQuery.data.value.captureTime)
-          }}</strong>
-        </div>
-        <div>
-          <span>更新时间</span>
-          <strong>{{
-            formatTime(candidateQuery.data.value.updatedAt)
-          }}</strong>
+        <div class="detail-sticky-top-right">
+          <NTag
+            v-if="candidateQuery.data.value"
+            size="medium"
+            :type="statusType"
+            :bordered="false"
+          >
+            {{ statusLabels[candidateQuery.data.value.status] }}
+          </NTag>
         </div>
       </div>
 
-      <NAlert
-        v-if="candidateQuery.data.value.rejectionReason"
-        type="warning"
-        class="page-alert"
-      >
-        拒绝原因：{{ candidateQuery.data.value.rejectionReason }}
-      </NAlert>
+      <div class="detail-page-body">
+        <div class="page-heading detail-heading">
+          <div>
+            <h1>候选详情</h1>
+            <p>预览记忆观感，编辑 Markdown 草稿，并完成批准或拒绝。</p>
+          </div>
+        </div>
 
-      <NForm label-placement="top" @submit.prevent="saveDraft">
-        <NFormItem label="标题" required>
-          <NInput
-            v-model:value="form.title"
-            size="large"
-            maxlength="200"
-            show-count
-            :disabled="!isPending"
-            placeholder="候选标题"
-          />
-        </NFormItem>
-        <NFormItem label="类型" required>
-          <NSelect
-            v-model:value="form.memoryType"
-            size="large"
-            :options="memoryTypeOptions"
-            :disabled="!isPending"
-          />
-        </NFormItem>
-        <NFormItem label="项目">
-          <NInput
-            v-model:value="form.project"
-            size="large"
-            maxlength="120"
-            :disabled="!isPending"
-            placeholder="可选，例如 memory-hub"
-          />
-        </NFormItem>
-        <NFormItem label="正文" required class="md-body-field">
-          <MemoryMarkdownEditor
-            v-model="form.body"
-            v-model:render-style="form.renderStyle"
-            v-model:emoji-enabled="form.emojiEnabled"
-            :memory-type="form.memoryType"
-            :title="form.title"
-            :readonly="!isPending"
-          />
-        </NFormItem>
-        <NFormItem v-if="isPending" label="拒绝原因（可选）">
-          <NInput
-            v-model:value="form.rejectReason"
-            type="textarea"
-            :autosize="{ minRows: 2, maxRows: 4 }"
-            maxlength="1000"
-            show-count
-            placeholder="例如：信息过时或不应长期保存"
-          />
-        </NFormItem>
+        <div v-if="candidateQuery.isPending.value" class="page-loading">
+          <NSpin size="large" />
+          <span>正在加载候选详情</span>
+        </div>
 
+        <section
+          v-else-if="candidateQuery.data.value"
+          class="detail-surface"
+        >
+          <NAlert v-if="errorMessage" type="error" class="page-alert">
+            {{ errorMessage }}
+          </NAlert>
+
+          <div class="detail-meta-grid">
+            <div>
+              <span>来源</span>
+              <strong>{{ candidateQuery.data.value.source }}</strong>
+            </div>
+            <div>
+              <span>类型</span>
+              <strong>{{
+                memoryTypeLabels[candidateQuery.data.value.memoryType]
+              }}</strong>
+            </div>
+            <div>
+              <span>敏感级别</span>
+              <strong>{{
+                sensitivityLabels[candidateQuery.data.value.sensitivity]
+              }}</strong>
+            </div>
+            <div>
+              <span>置信度</span>
+              <strong>{{ candidateQuery.data.value.confidence }}%</strong>
+            </div>
+            <div>
+              <span>捕获时间</span>
+              <strong>{{
+                formatTime(candidateQuery.data.value.captureTime)
+              }}</strong>
+            </div>
+            <div>
+              <span>更新时间</span>
+              <strong>{{
+                formatTime(candidateQuery.data.value.updatedAt)
+              }}</strong>
+            </div>
+          </div>
+
+          <NAlert
+            v-if="candidateQuery.data.value.rejectionReason"
+            type="warning"
+            class="page-alert"
+          >
+            拒绝原因：{{ candidateQuery.data.value.rejectionReason }}
+          </NAlert>
+
+          <NForm
+            id="candidate-detail-form"
+            label-placement="top"
+            @submit.prevent="saveDraft"
+          >
+            <NFormItem label="标题" required>
+              <NInput
+                v-model:value="form.title"
+                size="large"
+                maxlength="200"
+                show-count
+                :disabled="!isPending"
+                placeholder="候选标题"
+              />
+            </NFormItem>
+            <NFormItem label="类型" required>
+              <NSelect
+                v-model:value="form.memoryType"
+                size="large"
+                :options="memoryTypeOptions"
+                :disabled="!isPending"
+              />
+            </NFormItem>
+            <NFormItem label="项目">
+              <NInput
+                v-model:value="form.project"
+                size="large"
+                maxlength="120"
+                :disabled="!isPending"
+                placeholder="可选，例如 memory-hub"
+              />
+            </NFormItem>
+            <NFormItem label="正文" required class="md-body-field">
+              <MemoryMarkdownEditor
+                v-model="form.body"
+                v-model:render-style="form.renderStyle"
+                v-model:emoji-enabled="form.emojiEnabled"
+                :memory-type="form.memoryType"
+                :title="form.title"
+                :readonly="!isPending"
+              />
+            </NFormItem>
+            <NFormItem v-if="isPending" label="拒绝原因（可选）">
+              <NInput
+                v-model:value="form.rejectReason"
+                type="textarea"
+                :autosize="{ minRows: 2, maxRows: 4 }"
+                maxlength="1000"
+                show-count
+                placeholder="例如：信息过时或不应长期保存"
+              />
+            </NFormItem>
+          </NForm>
+        </section>
+
+        <section v-else class="detail-surface">
+          <NAlert type="error" class="page-alert">
+            {{ errorMessage || '候选记忆不存在或已被删除。' }}
+          </NAlert>
+        </section>
+      </div>
+
+      <div class="detail-sticky-bottom">
         <div class="detail-actions">
           <NButton @click="router.push('/inbox')">返回列表</NButton>
           <div class="detail-actions-primary">
+            <template v-if="candidateQuery.data.value && isPending">
+              <NButton
+                :disabled="!canSave"
+                :loading="updateMutation.isPending.value"
+                attr-type="submit"
+                form="candidate-detail-form"
+              >
+                <template #icon><Save :size="16" /></template>
+                保存草稿
+              </NButton>
+              <NButton
+                type="error"
+                secondary
+                :loading="rejectMutation.isPending.value"
+                @click="confirmReject"
+              >
+                <template #icon><X :size="16" /></template>
+                拒绝
+              </NButton>
+              <NButton
+                type="primary"
+                :loading="approveMutation.isPending.value"
+                @click="confirmApprove"
+              >
+                <template #icon><Check :size="16" /></template>
+                批准
+              </NButton>
+            </template>
             <NButton
-              v-if="isPending"
-              :disabled="!canSave"
-              :loading="updateMutation.isPending.value"
-              attr-type="submit"
-            >
-              <template #icon><Save :size="16" /></template>
-              保存草稿
-            </NButton>
-            <NButton
-              v-if="isPending"
-              type="error"
-              secondary
-              :loading="rejectMutation.isPending.value"
-              @click="confirmReject"
-            >
-              <template #icon><X :size="16" /></template>
-              拒绝
-            </NButton>
-            <NButton
-              v-if="isPending"
+              v-else-if="!candidateQuery.data.value && !candidateQuery.isPending.value"
               type="primary"
-              :loading="approveMutation.isPending.value"
-              @click="confirmApprove"
+              @click="router.push('/inbox')"
             >
-              <template #icon><Check :size="16" /></template>
-              批准
+              返回收件箱
             </NButton>
           </div>
         </div>
-      </NForm>
-    </section>
-
-    <section v-else class="detail-surface">
-      <NAlert type="error" class="page-alert">
-        {{ errorMessage || '候选记忆不存在或已被删除。' }}
-      </NAlert>
-      <div class="detail-actions">
-        <NButton @click="router.push('/inbox')">返回收件箱</NButton>
       </div>
-    </section>
+    </div>
   </AppShell>
 </template>
-
