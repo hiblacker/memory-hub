@@ -1,0 +1,254 @@
+<div id="memoryhub-page-designs">
+  <style>
+    #memoryhub-page-designs {
+      --mh-bg: light-dark(#eef2f6, #121820);
+      --mh-surface: light-dark(#ffffff, #1b2430);
+      --mh-surface-2: light-dark(#f7f9fb, #202b38);
+      --mh-line: light-dark(#dce3eb, #344252);
+      --mh-text: light-dark(#1f2937, #eef3f8);
+      --mh-muted: light-dark(#6b7785, #a9b7c6);
+      --mh-primary: light-dark(#2e6f9e, #7eb8e5);
+      --mh-primary-soft: light-dark(#e4f1fb, #243f55);
+      --mh-success: light-dark(#287a58, #72d1a7);
+      --mh-success-soft: light-dark(#e7f5ee, #244337);
+      --mh-warning: light-dark(#9c6816, #e2b765);
+      --mh-warning-soft: light-dark(#fff4dc, #4a3b20);
+      --mh-danger: light-dark(#a04444, #ed9999);
+      --mh-danger-soft: light-dark(#fceaea, #482b31);
+      --mh-purple: light-dark(#7653a8, #c4a3ed);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--mh-text);
+      background: transparent;
+      font-size: 14px;
+    }
+    #memoryhub-page-designs * { box-sizing: border-box; }
+    #memoryhub-page-designs .mh-board-title { margin: 0 0 8px; font-size: 22px; font-weight: 500; letter-spacing: -.01em; }
+    #memoryhub-page-designs .mh-board-subtitle { margin: 0 0 24px; color: var(--mh-muted); }
+    #memoryhub-page-designs .mh-screen { margin: 0 auto 28px; max-width: 1120px; background: var(--mh-bg); border: 1px solid var(--mh-line); border-radius: 14px; overflow: hidden; box-shadow: 0 12px 30px color-mix(in srgb, var(--mh-text) 8%, transparent); }
+    #memoryhub-page-designs .mh-screen-label { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 18px; background: var(--mh-surface-2); border-bottom: 1px solid var(--mh-line); font-size: 12px; color: var(--mh-muted); }
+    #memoryhub-page-designs .mh-window { min-height: 470px; display: grid; grid-template-columns: 204px minmax(0, 1fr); }
+    #memoryhub-page-designs .mh-sider { background: var(--mh-surface); border-right: 1px solid var(--mh-line); padding: 18px 12px; }
+    #memoryhub-page-designs .mh-brand { display: flex; align-items: center; gap: 9px; padding: 0 10px 20px; font-weight: 500; font-size: 16px; }
+    #memoryhub-page-designs .mh-brand-mark { width: 26px; height: 26px; display: grid; place-items: center; border-radius: 8px; background: var(--mh-primary); color: var(--mh-surface); font-weight: 600; }
+    #memoryhub-page-designs .mh-nav-group { margin: 16px 10px 7px; text-transform: uppercase; letter-spacing: .08em; font-size: 10px; color: var(--mh-muted); }
+    #memoryhub-page-designs .mh-nav-item { display: flex; align-items: center; gap: 9px; padding: 9px 10px; margin: 2px 0; border-radius: 7px; color: var(--mh-muted); }
+    #memoryhub-page-designs .mh-nav-item.active { color: var(--mh-primary); background: var(--mh-primary-soft); font-weight: 500; }
+    #memoryhub-page-designs .mh-nav-count { margin-left: auto; min-width: 21px; padding: 2px 5px; border-radius: 10px; text-align: center; font-size: 11px; background: var(--mh-warning-soft); color: var(--mh-warning); }
+    #memoryhub-page-designs .mh-main { min-width: 0; }
+    #memoryhub-page-designs .mh-topbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 58px; padding: 0 24px; background: var(--mh-surface); border-bottom: 1px solid var(--mh-line); }
+    #memoryhub-page-designs .mh-topbar-left, #memoryhub-page-designs .mh-topbar-right { display: flex; align-items: center; gap: 12px; }
+    #memoryhub-page-designs .mh-title { font-size: 16px; font-weight: 500; }
+    #memoryhub-page-designs .mh-connection { display: inline-flex; align-items: center; gap: 6px; color: var(--mh-success); font-size: 12px; }
+    #memoryhub-page-designs .mh-dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+    #memoryhub-page-designs .mh-avatar { width: 28px; height: 28px; display: grid; place-items: center; border-radius: 50%; background: var(--mh-primary-soft); color: var(--mh-primary); font-size: 12px; }
+    #memoryhub-page-designs .mh-content { padding: 25px 27px 32px; }
+    #memoryhub-page-designs .mh-page-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; margin-bottom: 20px; }
+    #memoryhub-page-designs h2 { margin: 0; font-size: 21px; font-weight: 500; }
+    #memoryhub-page-designs h3 { margin: 0 0 10px; font-size: 14px; font-weight: 500; }
+    #memoryhub-page-designs .mh-muted { color: var(--mh-muted); }
+    #memoryhub-page-designs .mh-small { font-size: 12px; }
+    #memoryhub-page-designs .mh-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; }
+    #memoryhub-page-designs .mh-button { appearance: none; border: 1px solid var(--mh-line); border-radius: 6px; padding: 8px 12px; background: var(--mh-surface); color: var(--mh-text); font: inherit; font-size: 12px; white-space: nowrap; }
+    #memoryhub-page-designs .mh-button.primary { background: var(--mh-primary); border-color: var(--mh-primary); color: var(--mh-surface); }
+    #memoryhub-page-designs .mh-button.danger { color: var(--mh-danger); border-color: color-mix(in srgb, var(--mh-danger) 35%, var(--mh-line)); }
+    #memoryhub-page-designs .mh-button:disabled { opacity: .5; }
+    #memoryhub-page-designs .mh-toolbar { display: flex; flex-wrap: wrap; gap: 8px; padding: 12px; background: var(--mh-surface); border: 1px solid var(--mh-line); border-radius: 8px; margin-bottom: 15px; }
+    #memoryhub-page-designs .mh-input, #memoryhub-page-designs .mh-select, #memoryhub-page-designs .mh-textarea { width: 100%; border: 1px solid var(--mh-line); border-radius: 6px; background: var(--mh-surface); color: var(--mh-text); font: inherit; font-size: 12px; padding: 8px 10px; }
+    #memoryhub-page-designs .mh-toolbar .mh-input { width: 205px; }
+    #memoryhub-page-designs .mh-toolbar .mh-select { width: 132px; }
+    #memoryhub-page-designs .mh-table-wrap { overflow: hidden; border: 1px solid var(--mh-line); border-radius: 8px; background: var(--mh-surface); }
+    #memoryhub-page-designs table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    #memoryhub-page-designs th { color: var(--mh-muted); font-weight: 400; text-align: left; background: var(--mh-surface-2); }
+    #memoryhub-page-designs th, #memoryhub-page-designs td { padding: 12px 13px; border-bottom: 1px solid var(--mh-line); vertical-align: top; }
+    #memoryhub-page-designs tr:last-child td { border-bottom: 0; }
+    #memoryhub-page-designs .mh-check { width: 17px; height: 17px; accent-color: var(--mh-primary); }
+    #memoryhub-page-designs .mh-tag { display: inline-flex; align-items: center; gap: 4px; border-radius: 5px; padding: 3px 7px; font-size: 11px; white-space: nowrap; background: var(--mh-surface-2); color: var(--mh-muted); }
+    #memoryhub-page-designs .mh-tag.success { color: var(--mh-success); background: var(--mh-success-soft); }
+    #memoryhub-page-designs .mh-tag.warning { color: var(--mh-warning); background: var(--mh-warning-soft); }
+    #memoryhub-page-designs .mh-tag.danger { color: var(--mh-danger); background: var(--mh-danger-soft); }
+    #memoryhub-page-designs .mh-tag.info { color: var(--mh-primary); background: var(--mh-primary-soft); }
+    #memoryhub-page-designs .mh-tag.purple { color: var(--mh-purple); background: color-mix(in srgb, var(--mh-purple) 15%, var(--mh-surface)); }
+    #memoryhub-page-designs .mh-pagination { display: flex; align-items: center; justify-content: space-between; padding-top: 14px; color: var(--mh-muted); font-size: 12px; }
+    #memoryhub-page-designs .mh-pager { display: flex; gap: 5px; }
+    #memoryhub-page-designs .mh-page-number { width: 27px; height: 27px; display: grid; place-items: center; border: 1px solid var(--mh-line); border-radius: 5px; background: var(--mh-surface); }
+    #memoryhub-page-designs .mh-page-number.active { color: var(--mh-primary); background: var(--mh-primary-soft); border-color: var(--mh-primary); }
+    #memoryhub-page-designs .mh-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 15px; }
+    #memoryhub-page-designs .mh-panel { background: var(--mh-surface); border: 1px solid var(--mh-line); border-radius: 8px; padding: 16px; }
+    #memoryhub-page-designs .mh-panel.flat { border-radius: 0; border-left: 0; border-right: 0; border-bottom: 0; }
+    #memoryhub-page-designs .mh-panel-header { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 13px; }
+    #memoryhub-page-designs .mh-kv { display: grid; grid-template-columns: 112px minmax(0, 1fr); gap: 9px 12px; font-size: 12px; }
+    #memoryhub-page-designs .mh-kv dt { color: var(--mh-muted); }
+    #memoryhub-page-designs .mh-kv dd { margin: 0; overflow-wrap: anywhere; }
+    #memoryhub-page-designs .mh-divider { border: 0; border-top: 1px solid var(--mh-line); margin: 16px 0; }
+    #memoryhub-page-designs .mh-alert { display: flex; gap: 10px; padding: 11px 12px; border-radius: 7px; border: 1px solid var(--mh-line); background: var(--mh-surface-2); font-size: 12px; line-height: 1.45; }
+    #memoryhub-page-designs .mh-alert.warning { color: var(--mh-warning); background: var(--mh-warning-soft); border-color: color-mix(in srgb, var(--mh-warning) 28%, var(--mh-line)); }
+    #memoryhub-page-designs .mh-alert.danger { color: var(--mh-danger); background: var(--mh-danger-soft); border-color: color-mix(in srgb, var(--mh-danger) 28%, var(--mh-line)); }
+    #memoryhub-page-designs .mh-alert.success { color: var(--mh-success); background: var(--mh-success-soft); border-color: color-mix(in srgb, var(--mh-success) 28%, var(--mh-line)); }
+    #memoryhub-page-designs .mh-alert.info { color: var(--mh-primary); background: var(--mh-primary-soft); border-color: color-mix(in srgb, var(--mh-primary) 28%, var(--mh-line)); }
+    #memoryhub-page-designs .mh-field { margin-bottom: 14px; }
+    #memoryhub-page-designs .mh-field label { display: block; margin-bottom: 6px; color: var(--mh-muted); font-size: 12px; }
+    #memoryhub-page-designs .mh-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 14px; }
+    #memoryhub-page-designs .mh-textarea { min-height: 128px; resize: none; line-height: 1.55; }
+    #memoryhub-page-designs .mh-markdown { min-height: 192px; padding: 15px; border: 1px solid var(--mh-line); border-radius: 7px; background: var(--mh-surface-2); font-size: 13px; line-height: 1.7; }
+    #memoryhub-page-designs .mh-markdown strong { font-weight: 500; }
+    #memoryhub-page-designs .mh-timeline { display: grid; gap: 13px; }
+    #memoryhub-page-designs .mh-timeline-item { display: grid; grid-template-columns: 11px minmax(0, 1fr); gap: 10px; }
+    #memoryhub-page-designs .mh-timeline-dot { width: 9px; height: 9px; margin-top: 4px; border-radius: 50%; background: var(--mh-primary); box-shadow: 0 0 0 3px var(--mh-primary-soft); }
+    #memoryhub-page-designs .mh-timeline-line { position: relative; }
+    #memoryhub-page-designs .mh-timeline-line:before { content: ""; position: absolute; left: 4px; top: 14px; bottom: -17px; width: 1px; background: var(--mh-line); }
+    #memoryhub-page-designs .mh-timeline-item:last-child .mh-timeline-line:before { display: none; }
+    #memoryhub-page-designs .mh-state { min-height: 230px; display: grid; place-items: center; text-align: center; padding: 26px; }
+    #memoryhub-page-designs .mh-state-icon { width: 45px; height: 45px; display: grid; place-items: center; border-radius: 50%; margin: 0 auto 12px; background: var(--mh-primary-soft); color: var(--mh-primary); font-size: 21px; }
+    #memoryhub-page-designs .mh-state h3 { margin-bottom: 6px; }
+    #memoryhub-page-designs .mh-state p { max-width: 380px; margin: 0 auto 16px; color: var(--mh-muted); font-size: 12px; }
+    #memoryhub-page-designs .mh-steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 9px; margin-bottom: 20px; }
+    #memoryhub-page-designs .mh-step { padding: 10px; border-top: 2px solid var(--mh-line); color: var(--mh-muted); font-size: 11px; }
+    #memoryhub-page-designs .mh-step.active { color: var(--mh-primary); border-top-color: var(--mh-primary); }
+    #memoryhub-page-designs .mh-rule-row { display: grid; grid-template-columns: 1.2fr 1fr 1fr 88px; align-items: center; gap: 10px; padding: 12px 0; border-bottom: 1px solid var(--mh-line); font-size: 12px; }
+    #memoryhub-page-designs .mh-rule-row:last-child { border-bottom: 0; }
+    #memoryhub-page-designs .mh-toggle { width: 31px; height: 18px; border-radius: 12px; padding: 2px; background: var(--mh-line); }
+    #memoryhub-page-designs .mh-toggle.on { background: var(--mh-success); }
+    #memoryhub-page-designs .mh-toggle:after { content: ""; display: block; width: 14px; height: 14px; border-radius: 50%; background: var(--mh-surface); }
+    #memoryhub-page-designs .mh-toggle.on:after { margin-left: 13px; }
+    #memoryhub-page-designs .mh-source-card { display: grid; grid-template-columns: 32px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 14px 0; border-bottom: 1px solid var(--mh-line); }
+    #memoryhub-page-designs .mh-source-card:last-child { border-bottom: 0; }
+    #memoryhub-page-designs .mh-source-icon { width: 32px; height: 32px; display: grid; place-items: center; border-radius: 8px; color: var(--mh-primary); background: var(--mh-primary-soft); font-weight: 500; }
+    #memoryhub-page-designs .mh-progress { height: 7px; border-radius: 5px; overflow: hidden; background: var(--mh-line); }
+    #memoryhub-page-designs .mh-progress > i { display: block; height: 100%; background: var(--mh-primary); }
+    #memoryhub-page-designs .mh-login { min-height: 470px; display: grid; place-items: center; background: radial-gradient(circle at 25% 20%, var(--mh-primary-soft), transparent 33%), var(--mh-bg); }
+    #memoryhub-page-designs .mh-login-box { width: min(390px, calc(100% - 38px)); padding: 28px; background: var(--mh-surface); border: 1px solid var(--mh-line); border-radius: 12px; box-shadow: 0 16px 35px color-mix(in srgb, var(--mh-text) 10%, transparent); }
+    #memoryhub-page-designs .mh-login-box .mh-brand { padding: 0 0 23px; }
+    #memoryhub-page-designs .mh-login-box h2 { margin-bottom: 7px; }
+    #memoryhub-page-designs .mh-login-box .mh-button { width: 100%; margin-top: 4px; }
+    #memoryhub-page-designs .mh-checkbox-line { display: flex; align-items: center; gap: 8px; color: var(--mh-muted); font-size: 12px; margin: 4px 0 13px; }
+    #memoryhub-page-designs .mh-modal-backdrop { min-height: 260px; display: grid; place-items: center; padding: 22px; background: color-mix(in srgb, var(--mh-text) 30%, transparent); }
+    #memoryhub-page-designs .mh-dialog { width: min(500px, 100%); background: var(--mh-surface); border-radius: 10px; border: 1px solid var(--mh-line); box-shadow: 0 16px 35px color-mix(in srgb, var(--mh-text) 22%, transparent); padding: 21px; }
+    #memoryhub-page-designs .mh-dialog-header { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 13px; }
+    #memoryhub-page-designs .mh-dialog h3 { font-size: 16px; }
+    #memoryhub-page-designs .mh-dialog-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 17px; }
+    #memoryhub-page-designs .mh-footnote { margin: 8px 0 24px; color: var(--mh-muted); font-size: 12px; }
+    @media (max-width: 760px) {
+      #memoryhub-page-designs .mh-window { grid-template-columns: 1fr; }
+      #memoryhub-page-designs .mh-sider { display: none; }
+      #memoryhub-page-designs .mh-content { padding: 20px 16px 26px; }
+      #memoryhub-page-designs .mh-topbar { padding: 0 16px; }
+      #memoryhub-page-designs .mh-page-head { flex-direction: column; }
+      #memoryhub-page-designs .mh-actions { justify-content: flex-start; }
+      #memoryhub-page-designs .mh-grid, #memoryhub-page-designs .mh-form-grid { grid-template-columns: 1fr; }
+      #memoryhub-page-designs .mh-toolbar .mh-input, #memoryhub-page-designs .mh-toolbar .mh-select { flex: 1 1 140px; width: auto; }
+      #memoryhub-page-designs .mh-table-wrap { overflow-x: auto; }
+      #memoryhub-page-designs table { min-width: 660px; }
+      #memoryhub-page-designs .mh-rule-row { grid-template-columns: 1fr 1fr; }
+      #memoryhub-page-designs .mh-steps { grid-template-columns: repeat(2, 1fr); }
+    }
+  </style>
+
+  <h1 class="mh-board-title">MemoryHub · V1 页面设计图</h1>
+  <p class="mh-board-subtitle">静态线框画板｜Vue 3 + Naive UI 风格｜合成数据｜不包含鼠标交互</p>
+
+  <section class="mh-screen" aria-label="登录页">
+    <div class="mh-screen-label"><span>01 · /login · 登录页</span><span>未登录状态</span></div>
+    <div class="mh-login">
+      <div class="mh-login-box">
+        <div class="mh-brand"><span class="mh-brand-mark">M</span><span>MemoryHub</span></div>
+        <h2>欢迎回来</h2>
+        <p class="mh-muted mh-small">登录后管理候选记忆、审核归档与连接状态。</p>
+        <div class="mh-field"><label>用户名</label><input class="mh-input" value="admin" readonly></div>
+        <div class="mh-field"><label>密码</label><input class="mh-input" value="••••••••••" readonly></div>
+        <label class="mh-checkbox-line"><input class="mh-check" type="checkbox" checked disabled> 在此设备保持登录</label>
+        <button class="mh-button primary" type="button">登录</button>
+        <p class="mh-footnote">服务部署在你的 NAS 内网中 · 不保存第三方令牌到浏览器</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="mh-screen" aria-label="候选收件箱">
+    <div class="mh-screen-label"><span>02 · /inbox · 候选收件箱</span><span>默认工作页 · 桌面布局</span></div>
+    <div class="mh-window">
+      <aside class="mh-sider">
+        <div class="mh-brand"><span class="mh-brand-mark">M</span><span>MemoryHub</span></div>
+        <div class="mh-nav-group">工作区</div>
+        <div class="mh-nav-item active">▣ <span>候选收件箱</span><span class="mh-nav-count">12</span></div>
+        <div class="mh-nav-item">＋ <span>手动录入</span></div>
+        <div class="mh-nav-item">↗ <span>归档记录</span></div>
+        <div class="mh-nav-group">配置</div>
+        <div class="mh-nav-item">◇ <span>自动归档规则</span></div>
+        <div class="mh-nav-item">⇩ <span>来源与导入</span></div>
+        <div class="mh-nav-item">⚙ <span>系统设置</span></div>
+      </aside>
+      <div class="mh-main">
+        <header class="mh-topbar"><div class="mh-topbar-left"><span class="mh-title">候选收件箱</span></div><div class="mh-topbar-right"><span class="mh-connection"><i class="mh-dot"></i>思源：已连接</span><span class="mh-avatar">AW</span></div></header>
+        <main class="mh-content">
+          <div class="mh-page-head"><div><h2>候选收件箱</h2><p class="mh-muted mh-small">待审核优先 · 共 42 条候选记忆</p></div><div class="mh-actions"><button class="mh-button" type="button">导入官方导出</button><button class="mh-button primary" type="button">＋ 新建候选</button></div></div>
+          <div class="mh-toolbar"><input class="mh-input" value="搜索标题或正文…" readonly><select class="mh-select"><option>所有来源</option></select><select class="mh-select"><option>所有状态</option></select><select class="mh-select"><option>更新时间倒序</option></select><button class="mh-button" type="button">清除筛选</button></div>
+          <div class="mh-table-wrap"><table><thead><tr><th><input class="mh-check" type="checkbox" checked disabled></th><th>候选记忆</th><th>来源</th><th>置信度</th><th>敏感检查</th><th>状态</th><th>更新时间</th></tr></thead><tbody>
+            <tr><td><input class="mh-check" type="checkbox" checked disabled></td><td><strong>MemoryHub V1 归档边界</strong><br><span class="mh-muted">ChatGPT · 产品决策</span></td><td>ChatGPT<br><span class="mh-muted">手动保存</span></td><td>92%</td><td><span class="mh-tag success">已通过</span></td><td><span class="mh-tag warning">待审核</span></td><td>今天 14:20</td></tr>
+            <tr><td><input class="mh-check" type="checkbox" disabled></td><td><strong>Claude Code 提交规范</strong><br><span class="mh-muted">仓库贡献流程</span></td><td>Claude Code<br><span class="mh-muted">Hook 事件</span></td><td>88%</td><td><span class="mh-tag success">已通过</span></td><td><span class="mh-tag info">处理中</span></td><td>今天 13:58</td></tr>
+            <tr><td><input class="mh-check" type="checkbox" disabled></td><td><strong>NAS 部署凭据</strong><br><span class="mh-muted">包含疑似密钥片段</span></td><td>ChatGPT<br><span class="mh-muted">官方导入</span></td><td>84%</td><td><span class="mh-tag danger">敏感阻断</span></td><td><span class="mh-tag danger">需处理</span></td><td>昨天 19:42</td></tr>
+            <tr><td><input class="mh-check" type="checkbox" disabled></td><td><strong>思源归档目录约定</strong><br><span class="mh-muted">/MemoryHub/Decisions</span></td><td>手动录入</td><td>96%</td><td><span class="mh-tag success">已通过</span></td><td><span class="mh-tag success">已归档</span></td><td>昨天 16:11</td></tr>
+          </tbody></table></div>
+          <div class="mh-pagination"><span>已选择 1 条 · 仅操作当前筛选结果</span><div class="mh-pager"><span class="mh-page-number">‹</span><span class="mh-page-number active">1</span><span class="mh-page-number">2</span><span class="mh-page-number">3</span><span class="mh-page-number">›</span></div></div>
+        </main>
+      </div>
+    </div>
+  </section>
+
+  <section class="mh-screen" aria-label="候选详情">
+    <div class="mh-screen-label"><span>03 · /inbox/:candidateId · 候选详情</span><span>来源可追溯 · 归档前确认</span></div>
+    <div class="mh-window">
+      <aside class="mh-sider"><div class="mh-brand"><span class="mh-brand-mark">M</span><span>MemoryHub</span></div><div class="mh-nav-group">工作区</div><div class="mh-nav-item active">▣ <span>候选收件箱</span><span class="mh-nav-count">12</span></div><div class="mh-nav-item">＋ <span>手动录入</span></div><div class="mh-nav-item">↗ <span>归档记录</span></div><div class="mh-nav-group">配置</div><div class="mh-nav-item">◇ <span>自动归档规则</span></div><div class="mh-nav-item">⇩ <span>来源与导入</span></div><div class="mh-nav-item">⚙ <span>系统设置</span></div></aside>
+      <div class="mh-main"><header class="mh-topbar"><div class="mh-topbar-left"><span class="mh-title">候选详情</span><span class="mh-tag warning">待审核</span></div><div class="mh-topbar-right"><span class="mh-connection"><i class="mh-dot"></i>思源：已连接</span><span class="mh-avatar">AW</span></div></header>
+        <main class="mh-content"><div class="mh-page-head"><div><h2>MemoryHub V1 归档边界</h2><p class="mh-muted mh-small">候选 ID cand_01H9M7 · 版本 v3 · 最后更新今天 14:20</p></div><div class="mh-actions"><button class="mh-button" type="button">拒绝</button><button class="mh-button" type="button">保存草稿</button><button class="mh-button primary" type="button">批准并归档</button></div></div>
+          <div class="mh-alert info"><span>i</span><span>此候选来自 ChatGPT 手动保存，已通过脱敏检查。批准后将写入“MemoryHub / Decisions”，并生成可追踪的思源交付记录。</span></div>
+          <div class="mh-grid" style="margin-top:15px"><section class="mh-panel"><div class="mh-panel-header"><h3>记忆正文</h3><span class="mh-tag info">Markdown</span></div><div class="mh-markdown"><strong>MemoryHub V1 归档边界</strong><br><br>MemoryHub 负责收集、审核和归档候选记忆。SiYuan 作为人类可读归档，不承担队列与业务状态。<br><br>自动归档必须经过脱敏、冲突、置信度、目标可用性和幂等检查。</div><hr class="mh-divider"><dl class="mh-kv"><dt>类型</dt><dd><span class="mh-tag">产品决策</span></dd><dt>项目</dt><dd>MemoryHub</dd><dt>置信度</dt><dd>92% · 高</dd></dl></section><section class="mh-panel"><div class="mh-panel-header"><h3>检查与归档目标</h3><span class="mh-tag success">可归档</span></div><dl class="mh-kv"><dt>脱敏检查</dt><dd><span class="mh-tag success">通过</span> 未发现密钥、凭据或身份信息</dd><dt>冲突检查</dt><dd><span class="mh-tag success">无冲突</span></dd><dt>目标笔记本</dt><dd>MemoryHub</dd><dt>目标路径</dt><dd><code>/Decisions/产品边界</code></dd><dt>归档策略</dt><dd>人工确认</dd></dl><hr class="mh-divider"><h3>版本与审计</h3><div class="mh-timeline"><div class="mh-timeline-item"><div class="mh-timeline-line"><i class="mh-timeline-dot"></i></div><div><strong>v3 · 脱敏通过</strong><br><span class="mh-muted mh-small">今天 14:20 · Worker</span></div></div><div class="mh-timeline-item"><div class="mh-timeline-line"><i class="mh-timeline-dot"></i></div><div><strong>v2 · 用户编辑</strong><br><span class="mh-muted mh-small">今天 14:18 · 管理员</span></div></div><div class="mh-timeline-item"><div class="mh-timeline-line"><i class="mh-timeline-dot"></i></div><div><strong>v1 · 已接收</strong><br><span class="mh-muted mh-small">今天 14:16 · ChatGPT</span></div></div></div></section></div>
+        </main>
+      </div>
+    </div>
+  </section>
+
+  <section class="mh-screen" aria-label="手动录入">
+    <div class="mh-screen-label"><span>04 · /capture · 手动录入</span><span>创建候选，不直接归档</span></div>
+    <div class="mh-window"><aside class="mh-sider"><div class="mh-brand"><span class="mh-brand-mark">M</span><span>MemoryHub</span></div><div class="mh-nav-group">工作区</div><div class="mh-nav-item">▣ <span>候选收件箱</span></div><div class="mh-nav-item active">＋ <span>手动录入</span></div><div class="mh-nav-item">↗ <span>归档记录</span></div><div class="mh-nav-group">配置</div><div class="mh-nav-item">◇ <span>自动归档规则</span></div><div class="mh-nav-item">⇩ <span>来源与导入</span></div><div class="mh-nav-item">⚙ <span>系统设置</span></div></aside><div class="mh-main"><header class="mh-topbar"><span class="mh-title">手动录入</span><div class="mh-topbar-right"><span class="mh-connection"><i class="mh-dot"></i>思源：已连接</span><span class="mh-avatar">AW</span></div></header><main class="mh-content"><div class="mh-page-head"><div><h2>新建候选记忆</h2><p class="mh-muted mh-small">填写后提交处理队列，稍后在收件箱审核。</p></div><div class="mh-actions"><button class="mh-button" type="button">取消</button><button class="mh-button primary" type="button">提交候选</button></div></div><div class="mh-panel"><div class="mh-form-grid"><div class="mh-field"><label>标题 <span class="mh-muted">必填</span></label><input class="mh-input" value="我的记忆标题" readonly></div><div class="mh-field"><label>来源</label><select class="mh-select"><option>ChatGPT · 手动保存</option></select></div><div class="mh-field"><label>类型</label><select class="mh-select"><option>产品决策</option></select></div><div class="mh-field"><label>项目</label><input class="mh-input" value="MemoryHub" readonly></div></div><div class="mh-field"><label>正文 <span class="mh-muted">支持 Markdown</span></label><textarea class="mh-textarea" readonly>记录一条可长期复用的工作约定……</textarea></div><div class="mh-form-grid"><div class="mh-field"><label>捕获时间</label><input class="mh-input" value="2026-08-14 15:24" readonly></div><div class="mh-field"><label>默认归档策略</label><select class="mh-select"><option>人工审核</option><option>按规则判断</option></select></div></div><div class="mh-alert info"><span>i</span><span>提交后会保留来源与审计信息。此页面不会读取 ChatGPT 网页内容，也不会直接写入思源。</span></div></div></main></div></div>
+  </section>
+
+  <section class="mh-screen" aria-label="归档记录">
+    <div class="mh-screen-label"><span>05 · /archive · 归档记录</span><span>交付状态可追踪 · 失败可重试</span></div>
+    <div class="mh-window"><aside class="mh-sider"><div class="mh-brand"><span class="mh-brand-mark">M</span><span>MemoryHub</span></div><div class="mh-nav-group">工作区</div><div class="mh-nav-item">▣ <span>候选收件箱</span></div><div class="mh-nav-item">＋ <span>手动录入</span></div><div class="mh-nav-item active">↗ <span>归档记录</span></div><div class="mh-nav-group">配置</div><div class="mh-nav-item">◇ <span>自动归档规则</span></div><div class="mh-nav-item">⇩ <span>来源与导入</span></div><div class="mh-nav-item">⚙ <span>系统设置</span></div></aside><div class="mh-main"><header class="mh-topbar"><span class="mh-title">归档记录</span><div class="mh-topbar-right"><span class="mh-connection"><i class="mh-dot"></i>思源：已连接</span><span class="mh-avatar">AW</span></div></header><main class="mh-content"><div class="mh-page-head"><div><h2>归档记录</h2><p class="mh-muted mh-small">记录每次向思源交付的结果与重试轨迹。</p></div><div class="mh-actions"><button class="mh-button" type="button">导出审计摘要</button></div></div><div class="mh-toolbar"><input class="mh-input" value="搜索候选或目标文档…" readonly><select class="mh-select"><option>所有交付状态</option></select><select class="mh-select"><option>最近 30 天</option></select></div><div class="mh-table-wrap"><table><thead><tr><th>候选记忆</th><th>目标文档</th><th>版本</th><th>尝试次数</th><th>状态</th><th>更新时间</th><th>操作</th></tr></thead><tbody><tr><td><strong>思源归档目录约定</strong><br><span class="mh-muted">cand_01H9M2</span></td><td>/Decisions/归档目录</td><td>v2</td><td>1</td><td><span class="mh-tag success">已成功归档</span></td><td>昨天 16:12</td><td><span class="mh-muted">查看思源 ↗</span></td></tr><tr><td><strong>Claude Code 提交规范</strong><br><span class="mh-muted">cand_01H9M4</span></td><td>/Engineering/贡献规范</td><td>v1</td><td>2</td><td><span class="mh-tag warning">重试中</span></td><td>今天 14:03</td><td><button class="mh-button" type="button">查看</button></td></tr><tr><td><strong>旧版部署说明</strong><br><span class="mh-muted">cand_01H8Z1</span></td><td>/Archive/部署说明</td><td>v4</td><td>5</td><td><span class="mh-tag danger">死信</span></td><td>周三 09:20</td><td><button class="mh-button" type="button">重试</button></td></tr></tbody></table></div><div class="mh-pagination"><span>共 18 条交付记录</span><div class="mh-pager"><span class="mh-page-number active">1</span><span class="mh-page-number">2</span><span class="mh-page-number">›</span></div></div></main></div></div>
+  </section>
+
+  <section class="mh-screen" aria-label="自动归档规则">
+    <div class="mh-screen-label"><span>06 · /rules · 自动归档规则</span><span>声明式白名单 · 先试运行再启用</span></div>
+    <div class="mh-window"><aside class="mh-sider"><div class="mh-brand"><span class="mh-brand-mark">M</span><span>MemoryHub</span></div><div class="mh-nav-group">工作区</div><div class="mh-nav-item">▣ <span>候选收件箱</span></div><div class="mh-nav-item">＋ <span>手动录入</span></div><div class="mh-nav-item">↗ <span>归档记录</span></div><div class="mh-nav-group">配置</div><div class="mh-nav-item active">◇ <span>自动归档规则</span></div><div class="mh-nav-item">⇩ <span>来源与导入</span></div><div class="mh-nav-item">⚙ <span>系统设置</span></div></aside><div class="mh-main"><header class="mh-topbar"><span class="mh-title">自动归档规则</span><div class="mh-topbar-right"><span class="mh-connection"><i class="mh-dot"></i>思源：已连接</span><span class="mh-avatar">AW</span></div></header><main class="mh-content"><div class="mh-page-head"><div><h2>自动归档规则</h2><p class="mh-muted mh-small">仅允许类型、来源、项目、敏感等级、置信度和冲突状态等字段。</p></div><div class="mh-actions"><button class="mh-button primary" type="button">＋ 新建规则</button></div></div><div class="mh-panel"><div class="mh-rule-row" style="padding-top:0"><strong>规则名称</strong><span>匹配条件</span><span>最近试运行</span><span>状态</span></div><div class="mh-rule-row"><div><strong>永久记忆 · 通过即归档</strong><br><span class="mh-muted mh-small">来源不限 · 置信度 ≥ 90%</span></div><div><span class="mh-tag success">敏感=通过</span> <span class="mh-tag success">冲突=无</span></div><div>今天 13:40<br><span class="mh-muted">命中 8 / 阻断 1</span></div><div><div class="mh-toggle on"></div><span class="mh-muted mh-small">已启用</span></div></div><div class="mh-rule-row"><div><strong>Claude Code 工程记忆</strong><br><span class="mh-muted mh-small">项目=MemoryHub · 类型=工程</span></div><div><span class="mh-tag info">目标：Engineering</span></div><div>昨天 18:20<br><span class="mh-muted">命中 3 / 阻断 0</span></div><div><div class="mh-toggle"></div><span class="mh-muted mh-small">未启用</span></div></div><div class="mh-rule-row"><div><strong>产品决策归档</strong><br><span class="mh-muted mh-small">类型=产品决策</span></div><div><span class="mh-tag purple">需人工复核</span></div><div>从未运行<br><span class="mh-muted">—</span></div><div><div class="mh-toggle"></div><span class="mh-muted mh-small">未启用</span></div></div></div><div class="mh-alert warning" style="margin-top:15px"><span>!</span><span>规则启用前必须先试运行。自动归档仍需通过脱敏、无冲突、置信度阈值、目标可用性和幂等检查。</span></div></main></div></div>
+  </section>
+
+  <section class="mh-screen" aria-label="规则编辑和试运行">
+    <div class="mh-screen-label"><span>07 · /rules/:ruleId/dry-run · 规则编辑 / 试运行结果</span><span>只读预览 · 不产生真实交付</span></div>
+    <div class="mh-window"><aside class="mh-sider"><div class="mh-brand"><span class="mh-brand-mark">M</span><span>MemoryHub</span></div><div class="mh-nav-group">工作区</div><div class="mh-nav-item">▣ <span>候选收件箱</span></div><div class="mh-nav-item">＋ <span>手动录入</span></div><div class="mh-nav-item">↗ <span>归档记录</span></div><div class="mh-nav-group">配置</div><div class="mh-nav-item active">◇ <span>自动归档规则</span></div><div class="mh-nav-item">⇩ <span>来源与导入</span></div><div class="mh-nav-item">⚙ <span>系统设置</span></div></aside><div class="mh-main"><header class="mh-topbar"><span class="mh-title">规则试运行</span><div class="mh-topbar-right"><span class="mh-connection"><i class="mh-dot"></i>思源：已连接</span><span class="mh-avatar">AW</span></div></header><main class="mh-content"><div class="mh-page-head"><div><h2>永久记忆 · 通过即归档</h2><p class="mh-muted mh-small">编辑规则条件后运行预览，再确认启用。</p></div><div class="mh-actions"><button class="mh-button" type="button">保存草稿</button><button class="mh-button primary" type="button">运行试运行</button></div></div><div class="mh-steps"><div class="mh-step active">1 · 编辑条件</div><div class="mh-step active">2 · 试运行</div><div class="mh-step">3 · 检查阻断</div><div class="mh-step">4 · 确认启用</div></div><div class="mh-grid"><section class="mh-panel"><div class="mh-panel-header"><h3>匹配条件</h3><span class="mh-tag info">白名单字段</span></div><div class="mh-field"><label>来源</label><select class="mh-select"><option>所有来源</option></select></div><div class="mh-field"><label>类型</label><select class="mh-select"><option>永久记忆</option></select></div><div class="mh-field"><label>最低置信度：90%</label><input class="mh-input" value="90" readonly></div><div class="mh-field"><label>敏感检查</label><select class="mh-select"><option>必须通过</option></select></div><div class="mh-field"><label>冲突状态</label><select class="mh-select"><option>无冲突</option></select></div><div class="mh-field"><label>归档目标</label><input class="mh-input" value="MemoryHub / Memories" readonly></div></section><section class="mh-panel"><div class="mh-panel-header"><h3>试运行结果</h3><span class="mh-tag success">只读预览</span></div><div class="mh-grid"><div><div class="mh-muted mh-small">匹配候选</div><div style="font-size:25px;margin-top:4px">8</div></div><div><div class="mh-muted mh-small">阻断候选</div><div style="font-size:25px;margin-top:4px;color:var(--mh-warning)">1</div></div></div><hr class="mh-divider"><div class="mh-alert warning"><span>!</span><span>1 条候选因“疑似敏感内容”被阻断，不会进入自动归档。</span></div><div class="mh-progress" style="margin-top:16px"><i style="width:88%"></i></div><p class="mh-muted mh-small">命中率 88% · 最近 30 天候选</p><div class="mh-actions" style="justify-content:flex-start"><button class="mh-button" type="button">查看命中 (8)</button><button class="mh-button" type="button">查看阻断 (1)</button></div></section></div></main></div></div>
+  </section>
+
+  <section class="mh-screen" aria-label="来源与导入">
+    <div class="mh-screen-label"><span>08 · /sources · 来源与导入</span><span>显式采集 · 官方导出导入</span></div>
+    <div class="mh-window"><aside class="mh-sider"><div class="mh-brand"><span class="mh-brand-mark">M</span><span>MemoryHub</span></div><div class="mh-nav-group">工作区</div><div class="mh-nav-item">▣ <span>候选收件箱</span></div><div class="mh-nav-item">＋ <span>手动录入</span></div><div class="mh-nav-item">↗ <span>归档记录</span></div><div class="mh-nav-group">配置</div><div class="mh-nav-item">◇ <span>自动归档规则</span></div><div class="mh-nav-item active">⇩ <span>来源与导入</span></div><div class="mh-nav-item">⚙ <span>系统设置</span></div></aside><div class="mh-main"><header class="mh-topbar"><span class="mh-title">来源与导入</span><div class="mh-topbar-right"><span class="mh-connection"><i class="mh-dot"></i>思源：已连接</span><span class="mh-avatar">AW</span></div></header><main class="mh-content"><div class="mh-page-head"><div><h2>来源与导入</h2><p class="mh-muted mh-small">管理允许的采集方式，不支持网页自动监听或隐藏记忆读取。</p></div><div class="mh-actions"><button class="mh-button primary" type="button">导入官方导出</button></div></div><div class="mh-panel"><div class="mh-source-card"><div class="mh-source-icon">C</div><div><strong>ChatGPT</strong><br><span class="mh-muted mh-small">手动保存或官方 conversations.json 导入</span></div><span class="mh-tag success">可用</span></div><div class="mh-source-card"><div class="mh-source-icon">⌘</div><div><strong>Claude Code</strong><br><span class="mh-muted mh-small">本地 Hook / CLI 事件接入</span></div><span class="mh-tag success">已连接</span></div><div class="mh-source-card"><div class="mh-source-icon">S</div><div><strong>SiYuan</strong><br><span class="mh-muted mh-small">归档目标与连接状态</span></div><span class="mh-tag success">已连接</span></div></div><div class="mh-grid" style="margin-top:15px"><section class="mh-panel"><h3>最近导入</h3><dl class="mh-kv"><dt>conversations.json</dt><dd>12 个会话 · 47 条消息</dd><dt>导入时间</dt><dd>今天 12:45</dd><dt>结果</dt><dd><span class="mh-tag success">已创建 9 条候选</span> <span class="mh-tag warning">跳过 2 条</span></dd></dl></section><section class="mh-panel"><h3>采集边界</h3><div class="mh-alert info"><span>i</span><span>只接收用户显式提交或官方导出文件。不会监控 ChatGPT 页面、读取隐藏长期记忆或跟随对话中的外部链接。</span></div></section></div></main></div></div>
+  </section>
+
+  <section class="mh-screen" aria-label="官方导出导入预览">
+    <div class="mh-screen-label"><span>09 · /sources/import · 官方导出导入预览</span><span>文件校验与选择</span></div>
+    <div class="mh-window"><aside class="mh-sider"><div class="mh-brand"><span class="mh-brand-mark">M</span><span>MemoryHub</span></div><div class="mh-nav-group">工作区</div><div class="mh-nav-item">▣ <span>候选收件箱</span></div><div class="mh-nav-item">＋ <span>手动录入</span></div><div class="mh-nav-item">↗ <span>归档记录</span></div><div class="mh-nav-group">配置</div><div class="mh-nav-item">◇ <span>自动归档规则</span></div><div class="mh-nav-item active">⇩ <span>来源与导入</span></div><div class="mh-nav-item">⚙ <span>系统设置</span></div></aside><div class="mh-main"><header class="mh-topbar"><span class="mh-title">导入预览</span><div class="mh-topbar-right"><span class="mh-connection"><i class="mh-dot"></i>思源：已连接</span><span class="mh-avatar">AW</span></div></header><main class="mh-content"><div class="mh-page-head"><div><h2>官方导出导入预览</h2><p class="mh-muted mh-small">只选择需要保存的会话或消息，导入后仍需审核。</p></div><div class="mh-actions"><button class="mh-button" type="button">更换文件</button><button class="mh-button primary" type="button">导入已选 (2)</button></div></div><div class="mh-panel"><div class="mh-alert success"><span>✓</span><span><strong>conversations.json</strong> · 2.4 MB · 12 个会话 · 文件格式校验通过</span></div><div class="mh-toolbar" style="margin-top:14px;margin-bottom:10px"><input class="mh-input" value="筛选会话标题…" readonly><span class="mh-muted mh-small" style="padding:8px 0">已选择 2 / 12</span></div><div class="mh-table-wrap"><table><thead><tr><th><input class="mh-check" type="checkbox" checked disabled></th><th>会话标题</th><th>消息数</th><th>时间范围</th><th>预览</th></tr></thead><tbody><tr><td><input class="mh-check" type="checkbox" checked disabled></td><td><strong>MemoryHub 设计边界</strong><br><span class="mh-muted">conversation_8e1…</span></td><td>18</td><td>今天 10:02–10:38</td><td>自动归档与人工复核的边界…</td></tr><tr><td><input class="mh-check" type="checkbox" checked disabled></td><td><strong>Pinia 状态管理调研</strong><br><span class="mh-muted">conversation_7c2…</span></td><td>11</td><td>昨天 16:20–16:44</td><td>服务端状态与客户端状态分层…</td></tr><tr><td><input class="mh-check" type="checkbox" disabled></td><td><strong>一次性代码排查</strong><br><span class="mh-muted">conversation_61a…</span></td><td>29</td><td>周三 09:10–09:55</td><td>导入前未选择</td></tr></tbody></table></div></div></main></div></div>
+  </section>
+
+  <section class="mh-screen" aria-label="系统设置和思源连接">
+    <div class="mh-screen-label"><span>10 · /settings · 系统设置 / 思源连接与目标</span><span>密钥只在服务端配置</span></div>
+    <div class="mh-window"><aside class="mh-sider"><div class="mh-brand"><span class="mh-brand-mark">M</span><span>MemoryHub</span></div><div class="mh-nav-group">工作区</div><div class="mh-nav-item">▣ <span>候选收件箱</span></div><div class="mh-nav-item">＋ <span>手动录入</span></div><div class="mh-nav-item">↗ <span>归档记录</span></div><div class="mh-nav-group">配置</div><div class="mh-nav-item">◇ <span>自动归档规则</span></div><div class="mh-nav-item">⇩ <span>来源与导入</span></div><div class="mh-nav-item active">⚙ <span>系统设置</span></div></aside><div class="mh-main"><header class="mh-topbar"><span class="mh-title">系统设置</span><div class="mh-topbar-right"><span class="mh-connection"><i class="mh-dot"></i>思源：已连接</span><span class="mh-avatar">AW</span></div></header><main class="mh-content"><div class="mh-page-head"><div><h2>系统设置</h2><p class="mh-muted mh-small">连接、目标和界面偏好。浏览器不接收令牌、模型密钥或数据库凭据。</p></div><div class="mh-actions"><button class="mh-button" type="button">恢复默认</button><button class="mh-button primary" type="button">保存设置</button></div></div><div class="mh-grid"><section class="mh-panel"><div class="mh-panel-header"><h3>思源连接</h3><span class="mh-tag success">已连接</span></div><div class="mh-field"><label>服务地址</label><input class="mh-input" value="http://192.168.1.10:1166" readonly></div><div class="mh-field"><label>访问令牌</label><input class="mh-input" value="由 Docker Secret 管理 · 不可查看" readonly></div><div class="mh-actions" style="justify-content:flex-start"><button class="mh-button" type="button">测试连接</button><span class="mh-muted mh-small">最近检查：今天 15:20</span></div></section><section class="mh-panel"><div class="mh-panel-header"><h3>默认归档目标</h3><span class="mh-tag info">默认</span></div><div class="mh-field"><label>笔记本</label><select class="mh-select"><option>MemoryHub</option></select></div><div class="mh-field"><label>文档路径</label><input class="mh-input" value="/Memories" readonly></div><div class="mh-alert info"><span>i</span><span>写入通过 SiYuan Kernel API 完成，不直接编辑 .sy 文件。</span></div></section></div><div class="mh-panel" style="margin-top:15px"><div class="mh-panel-header"><h3>界面偏好</h3><span class="mh-tag">仅本地偏好</span></div><div class="mh-form-grid"><div class="mh-field"><label>主题</label><select class="mh-select"><option>跟随系统</option></select></div><div class="mh-field"><label>信息密度</label><select class="mh-select"><option>紧凑</option></select></div></div></div></main></div></div>
+  </section>
+
+  <section class="mh-screen" aria-label="加载空状态和错误状态">
+    <div class="mh-screen-label"><span>11 · 通用反馈状态</span><span>页面状态优先于 Toast</span></div>
+    <div class="mh-window"><aside class="mh-sider"><div class="mh-brand"><span class="mh-brand-mark">M</span><span>MemoryHub</span></div><div class="mh-nav-group">工作区</div><div class="mh-nav-item active">▣ <span>候选收件箱</span></div><div class="mh-nav-item">＋ <span>手动录入</span></div><div class="mh-nav-item">↗ <span>归档记录</span></div><div class="mh-nav-group">配置</div><div class="mh-nav-item">◇ <span>自动归档规则</span></div><div class="mh-nav-item">⇩ <span>来源与导入</span></div><div class="mh-nav-item">⚙ <span>系统设置</span></div></aside><div class="mh-main"><header class="mh-topbar"><span class="mh-title">状态反馈样例</span><div class="mh-topbar-right"><span class="mh-connection" style="color:var(--mh-warning)"><i class="mh-dot"></i>思源：待检查</span><span class="mh-avatar">AW</span></div></header><main class="mh-content"><div class="mh-grid"><section class="mh-panel"><h3>加载中</h3><div class="mh-state"><div><div class="mh-state-icon">⋯</div><h3>正在加载候选</h3><p>保持页面结构稳定，避免重复提交。</p><div class="mh-progress"><i style="width:57%"></i></div></div></div></section><section class="mh-panel"><h3>空状态</h3><div class="mh-state"><div><div class="mh-state-icon">⌕</div><h3>没有匹配的候选</h3><p>可以清除筛选，或创建一条新的候选记忆。</p><div class="mh-actions" style="justify-content:center"><button class="mh-button" type="button">清除筛选</button><button class="mh-button primary" type="button">新建候选</button></div></div></div></section><section class="mh-panel"><h3>网络错误</h3><div class="mh-state"><div><div class="mh-state-icon" style="color:var(--mh-danger);background:var(--mh-danger-soft)">!</div><h3>暂时无法加载</h3><p>候选数据未丢失。检查服务状态后可以重试。</p><button class="mh-button primary" type="button">重试</button></div></div></section><section class="mh-panel"><h3>敏感内容阻断</h3><div class="mh-alert danger" style="margin-top:26px"><span>!</span><span><strong>无法归档</strong><br>检测到疑似访问令牌。请脱敏或拒绝，不允许绕过检查。</span></div></section></div></main></div></div>
+  </section>
+
+  <section class="mh-screen" aria-label="确认对话框和成功状态">
+    <div class="mh-screen-label"><span>12 · 关键动作反馈</span><span>确认、排队、成功回链</span></div>
+    <div class="mh-modal-backdrop"><div class="mh-dialog"><div class="mh-dialog-header"><h3>批准并归档？</h3><span class="mh-muted">×</span></div><p class="mh-small">这将创建候选 <strong>MemoryHub V1 归档边界</strong> 的归档交付任务。</p><dl class="mh-kv" style="margin-top:14px"><dt>目标笔记本</dt><dd>MemoryHub</dd><dt>目标路径</dt><dd><code>/Decisions/产品边界</code></dd><dt>敏感检查</dt><dd><span class="mh-tag success">已通过</span></dd><dt>幂等键</dt><dd><code>memver_01H9M7</code></dd></dl><div class="mh-alert info" style="margin-top:14px"><span>i</span><span>请求会进入归档队列，页面关闭后仍可在“归档记录”查看。</span></div><div class="mh-dialog-actions"><button class="mh-button" type="button">取消</button><button class="mh-button primary" type="button">确认并入队</button></div></div></div>
+    <div class="mh-window" style="margin-top:1px"><div class="mh-main" style="grid-column:1 / -1"><main class="mh-content"><div class="mh-alert success"><span>✓</span><span><strong>已排队归档</strong> · 交付任务 del_01H9M7 已创建。可前往归档记录查看状态。</span></div><div class="mh-panel" style="margin-top:15px"><div class="mh-panel-header"><h3>归档时间线</h3><span class="mh-tag warning">处理中</span></div><div class="mh-timeline"><div class="mh-timeline-item"><div class="mh-timeline-line"><i class="mh-timeline-dot"></i></div><div><strong>任务已入队</strong><br><span class="mh-muted mh-small">15:24:03 · 幂等检查通过</span></div></div><div class="mh-timeline-item"><div class="mh-timeline-line"><i class="mh-timeline-dot"></i></div><div><strong>等待 SiYuan 响应</strong><br><span class="mh-muted mh-small">下一次状态检查约 10 秒后</span></div></div></div></div></main></div></div>
+  </section>
+</div>

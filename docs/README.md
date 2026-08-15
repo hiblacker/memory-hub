@@ -19,6 +19,7 @@
 9. [安全与隐私](09-security.md)
 10. [前端组件库选型](10-frontend-component-library.md)
 11. [Vue 状态管理工具调研](11-frontend-state-management.md)
+12. [前端交互设计图](12-frontend-interaction-design.md)
 
 ## 已确认决策
 
@@ -32,3 +33,8 @@
 - [x] Pinia 已从 3.0.4 升级到 4.0.3，并补齐对应 Vue DevTools API 依赖。
 - [x] Vue 3 管理端采用 Naive UI，按需导入组件并统一管理主题 Provider。
 - [x] Vue 3 管理端采用 Pinia 管理跨页面客户端状态。
+
+## 已确认的交互设计
+
+- [x] 接受 [前端交互设计图](12-frontend-interaction-design.md) 作为 V1 管理端开发基线。
+- [x] 静态页面画板已纳入仓库：[前端页面设计图](designs/frontend-pages.html)。
