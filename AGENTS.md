@@ -43,6 +43,10 @@ apps/web             Vue 3 administration interface
 apps/api             Fastify HTTP API
 apps/worker          asynchronous processing and delivery
 packages/contracts   shared Zod schemas and event/API contracts
+packages/database    PostgreSQL schema, migrations, and stores
+packages/core        archive domain rendering and orchestration
+packages/siyuan      SiYuan kernel API adapter
+packages/security    redaction and secret detection
 docs                 accepted product, architecture, testing, and security design
 deploy               NAS Docker Compose and deployment artifacts
 ```
@@ -61,6 +65,17 @@ Planned packages such as `database`, `core`, `siyuan`, `llm`, and `security` sho
 8. Complete and submit one independently reviewable feature block at a time. After its focused checks pass, create a Conventional Commit locally; do not accumulate unrelated feature blocks before committing. Do not push to a remote repository unless the user explicitly asks.
 
 Use `pnpm` only. Do not introduce npm or Yarn lockfiles. Do not remove the Web package's `--configLoader runner` flags; they are required by the current Windows-compatible Vite/Vitest setup.
+
+
+## Implementation Completeness (Non-Negotiable)
+
+Do **not** implement "minimal", scaffold-only, placeholder, or intentionally incomplete versions of a planned feature when the task is to deliver that feature.
+
+- Every accepted work item must be implemented to industry best-practice quality for a self-hosted production system: correct process boundaries, validation, idempotency, retries/timeouts, auditability, secure secret handling, failure visibility, tests for success and high-risk failures, and synchronized documentation/contracts/migrations.
+- Prefer shipping one complete vertical slice over several half-finished layers.
+- Temporary stubs are allowed only as short-lived compile-time placeholders inside an in-progress commit series for the same feature block, and must be replaced before that feature is considered done.
+- Explicit product deferrals (for example items in `docs/TODO.md` or V1 out-of-scope lists) remain deferred; do not reinterpret "complete" as expanding product scope.
+- When a task says "worker", "adapter", "pipeline", or "rule engine", implement the full documented responsibility for that component, not a demo path that bypasses queues, audits, or idempotency.
 
 ## Architecture Invariants
 

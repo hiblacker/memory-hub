@@ -36,6 +36,7 @@ corepack enable
 pnpm install --frozen-lockfile
 docker compose -f deploy/compose.dev.yaml up -d
 pnpm dev
+# 等同于并行启动 web / api / worker
 ```
 
 打开 <http://localhost:8788>。开发环境默认登录凭据：
@@ -43,6 +44,13 @@ pnpm dev
 ```text
 用户名：admin
 密码：memoryhub-dev
+```
+
+Worker 负责消费归档 outbox 并调用思源。开发环境可设置：
+
+```text
+SIYUAN_TOKEN=你的思源Token
+SIYUAN_BASE_URL=http://192.168.1.10:1166
 ```
 
 该密码仅在 `NODE_ENV=development` 且未配置管理员密码时生效。生产环境必须通过 `MEMORY_HUB_ADMIN_PASSWORD_FILE` 注入密码。
