@@ -4,6 +4,7 @@ import {
   NAlert,
   NButton,
   NForm,
+  NFormItem,
   NInput,
   NSelect,
   NSpin,
@@ -247,38 +248,9 @@ function confirmReject() {
             拒绝原因：{{ candidateQuery.data.value.rejectionReason }}
           </NAlert>
 
-          <div class="detail-compact-fields">
-            <NInput
-              v-model:value="form.title"
-              size="medium"
-              maxlength="200"
-              :disabled="!isPending"
-              placeholder="标题"
-              class="detail-title-input"
-            />
-            <NSelect
-              v-model:value="form.memoryType"
-              size="medium"
-              :options="memoryTypeOptions"
-              :disabled="!isPending"
-              class="detail-type-select"
-            />
-            <NInput
-              v-model:value="form.project"
-              size="medium"
-              maxlength="120"
-              :disabled="!isPending"
-              placeholder="项目（可选）"
-              class="detail-project-input"
-            />
-          </div>
-
           <div class="detail-meta-inline" aria-label="候选属性">
             <NTag size="small" :bordered="false">
               来源 {{ candidateQuery.data.value.source }}
-            </NTag>
-            <NTag size="small" :bordered="false">
-              {{ memoryTypeLabels[form.memoryType] }}
             </NTag>
             <NTag size="small" :bordered="false">
               敏感 {{ sensitivityLabels[candidateQuery.data.value.sensitivity] }}
@@ -293,6 +265,38 @@ function confirmReject() {
               更新 {{ formatTime(candidateQuery.data.value.updatedAt) }}
             </NTag>
           </div>
+
+          <NForm
+            class="detail-fields-form"
+            label-placement="left"
+            label-width="56"
+            require-mark-placement="right-hanging"
+            size="medium"
+          >
+            <NFormItem label="标题" required class="detail-field-title">
+              <NInput
+                v-model:value="form.title"
+                maxlength="200"
+                :disabled="!isPending"
+                placeholder="候选标题"
+              />
+            </NFormItem>
+            <NFormItem label="类型" required class="detail-field-type">
+              <NSelect
+                v-model:value="form.memoryType"
+                :options="memoryTypeOptions"
+                :disabled="!isPending"
+              />
+            </NFormItem>
+            <NFormItem label="项目" class="detail-field-project">
+              <NInput
+                v-model:value="form.project"
+                maxlength="120"
+                :disabled="!isPending"
+                placeholder="可选，例如 memory-hub"
+              />
+            </NFormItem>
+          </NForm>
 
           <div class="detail-md-wrap">
             <MemoryMarkdownEditor
@@ -370,3 +374,4 @@ function confirmReject() {
     </div>
   </AppShell>
 </template>
+
