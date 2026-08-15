@@ -19,7 +19,7 @@ import type {
   Sensitivity,
 } from '@memory-hub/contracts'
 import { useQuery } from '@tanstack/vue-query'
-import { computed, reactive, watch } from 'vue'
+import { computed, h, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import AppShell from '../components/AppShell.vue'
@@ -56,8 +56,9 @@ const form = reactive({
   project: '',
   renderStyle: 'xhs_note' as RenderStyle,
   emojiEnabled: true,
-  rejectReason: '',
 })
+
+const rejectReasonDraft = ref('')
 
 watch(
   () => candidateQuery.data.value,
@@ -82,16 +83,6 @@ const memoryTypeOptions = [
   { label: '待办', value: 'todo' },
   { label: '敏感内容', value: 'sensitive' },
 ]
-
-const memoryTypeLabels: Record<MemoryType, string> = {
-  permanent_fact: '永久事实',
-  preference: '偏好',
-  project_context: '项目上下文',
-  decision: '决策',
-  temporary_state: '临时状态',
-  todo: '待办',
-  sensitive: '敏感内容',
-}
 
 const statusLabels: Record<CandidateStatus, string> = {
   pending: '待审核',
@@ -186,16 +177,35 @@ function confirmApprove() {
 
 function confirmReject() {
   if (!isPending.value || rejectMutation.isPending.value) return
+  rejectReasonDraft.value = ''
   dialog.error({
     title: '确认拒绝该候选？',
-    content: '拒绝后保留来源与审计记录，但不会进入归档队列。',
+    content: () =>
+      h('div', { class: 'reject-dialog-body' }, [
+        h(
+          'p',
+          { class: 'reject-dialog-tip' },
+          '拒绝后保留来源与审计记录，但不会进入归档队列。',
+        ),
+        h(NInput, {
+          type: 'textarea',
+          rows: 3,
+          maxlength: 1000,
+          showCount: true,
+          placeholder: '请输入拒绝原因（可选）',
+          value: rejectReasonDraft.value,
+          'onUpdate:value': (value: string) => {
+            rejectReasonDraft.value = value
+          },
+        }),
+      ]),
     positiveText: '确认拒绝',
     negativeText: '取消',
     onPositiveClick: async () => {
       await rejectMutation.mutateAsync({
         candidateId: candidateId.value,
         input: {
-          reason: form.rejectReason.trim() || undefined,
+          reason: rejectReasonDraft.value.trim() || undefined,
         },
       })
       message.success('候选已拒绝')
@@ -249,27 +259,40 @@ function confirmReject() {
           </NAlert>
 
           <div class="detail-meta-inline" aria-label="候选属性">
-            <NTag size="small" :bordered="false">
-              来源 {{ candidateQuery.data.value.source }}
-            </NTag>
-            <NTag size="small" :bordered="false">
-              敏感 {{ sensitivityLabels[candidateQuery.data.value.sensitivity] }}
-            </NTag>
-            <NTag size="small" :bordered="false">
-              置信度 {{ candidateQuery.data.value.confidence }}%
-            </NTag>
-            <NTag size="small" :bordered="false">
-              捕获 {{ formatTime(candidateQuery.data.value.captureTime) }}
-            </NTag>
-            <NTag size="small" :bordered="false">
-              更新 {{ formatTime(candidateQuery.data.value.updatedAt) }}
-            </NTag>
+            <span class="detail-meta-chip">
+              <span class="meta-k">来源</span>
+              <span class="meta-v">{{ candidateQuery.data.value.source }}</span>
+            </span>
+            <span class="detail-meta-chip">
+              <span class="meta-k">敏感</span>
+              <span class="meta-v">{{
+                sensitivityLabels[candidateQuery.data.value.sensitivity]
+              }}</span>
+            </span>
+            <span class="detail-meta-chip">
+              <span class="meta-k">置信度</span>
+              <span class="meta-v"
+                >{{ candidateQuery.data.value.confidence }}%</span
+              >
+            </span>
+            <span class="detail-meta-chip">
+              <span class="meta-k">捕获</span>
+              <span class="meta-v">{{
+                formatTime(candidateQuery.data.value.captureTime)
+              }}</span>
+            </span>
+            <span class="detail-meta-chip">
+              <span class="meta-k">更新</span>
+              <span class="meta-v">{{
+                formatTime(candidateQuery.data.value.updatedAt)
+              }}</span>
+            </span>
           </div>
 
           <NForm
             class="detail-fields-form"
             label-placement="left"
-            label-width="56"
+            label-width="48"
             require-mark-placement="right-hanging"
             size="medium"
           >
@@ -281,21 +304,23 @@ function confirmReject() {
                 placeholder="候选标题"
               />
             </NFormItem>
-            <NFormItem label="类型" required class="detail-field-type">
-              <NSelect
-                v-model:value="form.memoryType"
-                :options="memoryTypeOptions"
-                :disabled="!isPending"
-              />
-            </NFormItem>
-            <NFormItem label="项目" class="detail-field-project">
-              <NInput
-                v-model:value="form.project"
-                maxlength="120"
-                :disabled="!isPending"
-                placeholder="可选，例如 memory-hub"
-              />
-            </NFormItem>
+            <div class="detail-field-pair">
+              <NFormItem label="类型" required class="detail-field-type">
+                <NSelect
+                  v-model:value="form.memoryType"
+                  :options="memoryTypeOptions"
+                  :disabled="!isPending"
+                />
+              </NFormItem>
+              <NFormItem label="项目" class="detail-field-project">
+                <NInput
+                  v-model:value="form.project"
+                  maxlength="120"
+                  :disabled="!isPending"
+                  placeholder="可选，例如 memory-hub"
+                />
+              </NFormItem>
+            </div>
           </NForm>
 
           <div class="detail-md-wrap">
@@ -318,23 +343,6 @@ function confirmReject() {
       </div>
 
       <div class="detail-sticky-bottom">
-        <div
-          v-if="candidateQuery.data.value && isPending"
-          class="detail-reject-row"
-        >
-          <label class="detail-reject-label" for="detail-reject-reason">
-            拒绝原因
-          </label>
-          <NInput
-            id="detail-reject-reason"
-            v-model:value="form.rejectReason"
-            type="textarea"
-            :rows="2"
-            maxlength="1000"
-            placeholder="可选，例如：信息过时或不应长期保存"
-            class="detail-reject-input"
-          />
-        </div>
         <div class="detail-actions">
           <div class="detail-actions-left">
             <NButton @click="router.push('/inbox')">返回列表</NButton>
@@ -383,5 +391,3 @@ function confirmReject() {
     </div>
   </AppShell>
 </template>
-
-

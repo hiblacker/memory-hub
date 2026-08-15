@@ -539,8 +539,32 @@ input {
 .detail-meta-inline {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 8px;
   flex: none;
+}
+
+.detail-meta-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 28px;
+  padding: 3px 10px;
+  border: 1px solid var(--mh-border);
+  border-radius: 999px;
+  background: #ffffff;
+  line-height: 1.2;
+}
+
+.detail-meta-chip .meta-k {
+  color: var(--mh-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.detail-meta-chip .meta-v {
+  color: var(--mh-text);
+  font-size: 0.82rem;
+  font-weight: 600;
 }
 
 .detail-fields-form {
@@ -550,20 +574,26 @@ input {
 }
 
 .detail-fields-form .n-form-item {
-  margin-bottom: 10px;
-}
-
-.detail-fields-form .n-form-item:last-child {
   margin-bottom: 0;
 }
 
 .detail-field-title {
   max-width: 100%;
+  margin-bottom: 20px !important;
+}
+
+.detail-field-pair {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
 }
 
 .detail-field-type,
 .detail-field-project {
-  max-width: 320px;
+  width: 260px;
+  max-width: 100%;
+  margin-bottom: 0 !important;
 }
 
 .detail-field-type .n-select,
@@ -597,29 +627,16 @@ input {
   min-width: 0;
 }
 
-.detail-reject-row {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  margin-bottom: 10px;
+.reject-dialog-body {
+  display: grid;
+  gap: 12px;
 }
 
-.detail-reject-label {
-  flex: none;
-  min-width: 56px;
-  padding-top: 8px;
+.reject-dialog-tip {
+  margin: 0;
   color: var(--mh-muted);
-  font-size: 0.86rem;
-}
-
-.detail-reject-input {
-  width: min(640px, 92vw);
-  max-width: 100%;
-}
-
-.detail-reject-input .n-input__textarea-el {
-  min-height: 52px;
-  line-height: 1.5;
+  font-size: 0.9rem;
+  line-height: 1.55;
 }
 
 .workspace-content:has(.detail-page) {
@@ -1031,22 +1048,10 @@ body.md-fullscreen-open {
 
   .detail-field-type,
   .detail-field-project {
-    max-width: none;
-  }
-
-  .detail-reject-row {
-    flex-direction: column;
-    gap: 6px;
-  }
-
-  .detail-reject-label {
-    padding-top: 0;
-  }
-
-  .detail-reject-input {
     width: 100%;
   }
 }
+
 
 
 
