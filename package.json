@@ -9,7 +9,7 @@
     "node": ">=22.0.0"
   },
   "scripts": {
-    "dev": "pnpm --parallel --filter @memory-hub/web --filter @memory-hub/api dev",
+    "dev": "pnpm --parallel --filter @memory-hub/web --filter @memory-hub/api --filter @memory-hub/worker dev",
     "build": "pnpm -r build",
     "test": "pnpm -r test",
     "test:coverage": "pnpm -r test:coverage",

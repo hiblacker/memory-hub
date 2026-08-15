@@ -7,10 +7,17 @@
     "dev": "tsx watch src/main.ts",
     "build": "tsc -p tsconfig.json",
     "start": "node dist/main.js",
-    "test": "vitest run --passWithNoTests",
-    "test:coverage": "vitest run --coverage --passWithNoTests",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "lint": "eslint src --max-warnings 0"
+  },
+  "dependencies": {
+    "@memory-hub/core": "workspace:*",
+    "@memory-hub/database": "workspace:*",
+    "@memory-hub/security": "workspace:*",
+    "@memory-hub/siyuan": "workspace:*",
+    "pg-boss": "^10.1.6"
   },
   "devDependencies": {
     "@types/node": "^22.10.5",
