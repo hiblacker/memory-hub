@@ -18,15 +18,16 @@ import type {
   RenderStyle,
   Sensitivity,
 } from '@memory-hub/contracts'
-import { useQuery } from '@tanstack/vue-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { computed, h, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import AppShell from '../components/AppShell.vue'
 import MemoryMarkdownEditor from '../components/MemoryMarkdownEditor.vue'
-import { ApiError, getCandidate } from '../api'
+import { ApiError, getCandidate, listCandidateDeliveries, retryDelivery } from '../api'
 import {
   candidateQueryKey,
+  homeQueryKey,
   useApproveCandidateMutation,
   useRejectCandidateMutation,
   useUpdateCandidateMutation,
@@ -36,6 +37,7 @@ const route = useRoute()
 const router = useRouter()
 const dialog = useDialog()
 const message = useMessage()
+const queryClient = useQueryClient()
 
 const candidateId = computed(() => String(route.params.candidateId ?? ''))
 
@@ -45,6 +47,23 @@ const candidateQuery = useQuery({
   enabled: computed(() => candidateId.value.length > 0),
 })
 
+const deliveriesQuery = useQuery({
+  queryKey: computed(() => ['candidate-deliveries', candidateId.value]),
+  queryFn: () => listCandidateDeliveries(candidateId.value),
+  enabled: computed(() => Boolean(candidateId.value)),
+  refetchInterval: 4000,
+})
+
+const retryMutation = useMutation({
+  mutationFn: (deliveryId: string) => retryDelivery(deliveryId),
+  onSuccess: async () => {
+    await queryClient.invalidateQueries({
+      queryKey: ['candidate-deliveries', candidateId.value],
+    })
+    await queryClient.invalidateQueries({ queryKey: ['candidate', candidateId.value] })
+    await queryClient.invalidateQueries({ queryKey: homeQueryKey })
+  },
+})
 const updateMutation = useUpdateCandidateMutation()
 const approveMutation = useApproveCandidateMutation()
 const rejectMutation = useRejectCandidateMutation()
@@ -319,6 +338,32 @@ function confirmReject() {
               </NFormItem>
             </div>
           </NForm>
+
+          <div v-if="deliveriesQuery.data.value?.length" class="delivery-panel">
+            <strong>归档交付</strong>
+            <div
+              v-for="item in deliveriesQuery.data.value"
+              :key="item.id"
+              class="delivery-row"
+            >
+              <div>
+                <div>状态：{{ item.status }} · 尝试 {{ item.attemptCount }} 次</div>
+                <div v-if="item.documentId">文档：{{ item.documentId }}</div>
+                <div v-if="item.blockId">块：{{ item.blockId }}</div>
+                <div v-if="item.lastErrorMessage" class="text-danger">
+                  {{ item.lastErrorCode }}: {{ item.lastErrorMessage }}
+                </div>
+              </div>
+              <NButton
+                v-if="item.status === 'dead_letter' || item.status === 'blocked' || item.status === 'retrying'"
+                size="small"
+                :loading="retryMutation.isPending.value"
+                @click="retryMutation.mutate(item.id)"
+              >
+                重试
+              </NButton>
+            </div>
+          </div>
 
           <div class="detail-md-wrap">
             <MemoryMarkdownEditor

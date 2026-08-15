@@ -24,7 +24,7 @@ import { getHomeSummary } from '../api'
 import { homeQueryKey, useLogoutMutation } from '../queries'
 
 defineProps<{
-  activeNav: 'inbox' | 'capture'
+  activeNav: 'inbox' | 'capture' | 'archives' | 'settings'
   title: string
   context: string
 }>()
@@ -65,7 +65,7 @@ async function signOut() {
           <RouterLink
             class="nav-item"
             :class="{ active: activeNav === 'inbox' }"
-            to="/inbox"
+            to="/inbox">
           >
             <Inbox :size="17" aria-hidden="true" />
             <span>候选收件箱</span>
@@ -79,17 +79,27 @@ async function signOut() {
           <RouterLink
             class="nav-item"
             :class="{ active: activeNav === 'capture' }"
-            to="/capture"
+            to="/capture">
           >
             <CirclePlus :size="17" aria-hidden="true" />
             <span>手动录入</span>
           </RouterLink>
-          <div class="nav-item disabled" title="后续版本开放">
+                    <RouterLink
+            class="nav-item"
+            :class="{ active: activeNav === 'archives' }"
+            to="/archives">
             <BookOpenCheck :size="17" aria-hidden="true" />
             <span>归档记录</span>
-          </div>
+          </RouterLink>
 
           <p class="nav-section">配置</p>
+                    <RouterLink
+            class="nav-item"
+            :class="{ active: activeNav === 'settings' }"
+            to="/settings/siyuan">
+            <ShieldCheck :size="17" aria-hidden="true" />
+            <span>思源连接</span>
+          </RouterLink>
           <div class="nav-item disabled" title="后续版本开放">
             <ShieldCheck :size="17" aria-hidden="true" />
             <span>自动归档规则</span>

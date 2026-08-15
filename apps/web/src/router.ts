@@ -5,6 +5,8 @@ import { getCurrentUser } from './api'
 import { authQueryKey } from './queries'
 import { queryClient } from './query-client'
 import CaptureView from './views/CaptureView.vue'
+import SettingsView from './views/SettingsView.vue'
+import ArchivesView from './views/ArchivesView.vue'
 import CandidateDetailView from './views/CandidateDetailView.vue'
 import InboxView from './views/InboxView.vue'
 import LoginView from './views/LoginView.vue'
@@ -34,6 +36,18 @@ export function createAppRouter(
         path: '/capture',
         name: 'capture',
         component: CaptureView,
+        meta: { requiresAuth: true },
+      },
+      {
+        path: '/archives',
+        name: 'archives',
+        component: ArchivesView,
+        meta: { requiresAuth: true },
+      },
+      {
+        path: '/settings/siyuan',
+        name: 'settings-siyuan',
+        component: SettingsView,
         meta: { requiresAuth: true },
       },
     ],

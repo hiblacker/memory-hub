@@ -1,5 +1,8 @@
 import {
+  ArchiveDeliveryListSchema,
+  ArchiveDeliverySchema,
   CandidateListSchema,
+  SiyuanSettingsSchema,
   CandidateSummarySchema,
   HomeSummarySchema,
   LoginResponseSchema,
@@ -9,6 +12,9 @@ import {
   type HomeSummary,
   type LoginRequest,
   type RejectCandidateRequest,
+  type ArchiveDelivery,
+  type SiyuanSettings,
+  type UpdateSiyuanSettings,
   type UpdateCandidateRequest,
   type User,
 } from '@memory-hub/contracts'
@@ -127,4 +133,49 @@ export async function rejectCandidate(
       body: JSON.stringify(input),
     }),
   )
+}
+
+export async function getSiyuanSettings(): Promise<SiyuanSettings> {
+  return SiyuanSettingsSchema.parse(await request('/api/v1/settings/siyuan'))
+}
+
+export async function updateSiyuanSettings(
+  input: UpdateSiyuanSettings,
+): Promise<SiyuanSettings> {
+  return SiyuanSettingsSchema.parse(
+    await request('/api/v1/settings/siyuan', {
+      method: 'PUT',
+      body: JSON.stringify(input),
+    }),
+  )
+}
+
+export async function testSiyuanSettings(): Promise<SiyuanSettings> {
+  return SiyuanSettingsSchema.parse(
+    await request('/api/v1/settings/siyuan/test', {
+      method: 'POST',
+      body: JSON.stringify({}),
+    }),
+  )
+}
+
+export async function listCandidateDeliveries(
+  candidateId: string,
+): Promise<ArchiveDelivery[]> {
+  return ArchiveDeliveryListSchema.parse(
+    await request(`/api/v1/candidates/${candidateId}/deliveries`),
+  ).items
+}
+
+export async function retryDelivery(deliveryId: string): Promise<ArchiveDelivery> {
+  return ArchiveDeliverySchema.parse(
+    await request(`/api/v1/deliveries/${deliveryId}/retry`, {
+      method: 'POST',
+      body: JSON.stringify({}),
+    }),
+  )
+}
+
+export async function listArchives(): Promise<CandidateList> {
+  return CandidateListSchema.parse(await request('/api/v1/archives'))
 }
