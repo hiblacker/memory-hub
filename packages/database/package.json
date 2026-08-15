@@ -1,5 +1,5 @@
 {
-  "name": "@memory-hub/contracts",
+  "name": "@memory-hub/database",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -13,12 +13,14 @@
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "lint": "eslint src --max-warnings 0"
   },
+  "dependencies": {
+    "drizzle-orm": "^0.38.4",
+    "postgres": "^3.4.5"
+  },
   "devDependencies": {
+    "@types/node": "^22.10.5",
     "eslint": "^9.18.0",
     "typescript": "~5.7.3",
     "vitest": "^3.0.0"
-  },
-  "dependencies": {
-    "zod": "^3.25.76"
   }
 }

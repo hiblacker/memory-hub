@@ -31,7 +31,7 @@ Compose 草案见 [../deploy/compose.design.yaml](../deploy/compose.design.yaml)
   .env
   data/postgres/
   backup/
-  secrets/admin_token
+  secrets/admin_password
   secrets/siyuan_token
   secrets/llm_api_key
 ```
@@ -50,7 +50,10 @@ secret 文件权限建议设为仅 NAS 管理账号可读。Compose 不把 secre
 - `SIYUAN_BASE_URL=http://192.168.1.10:1166`
 - `SIYUAN_AUTH_HEADER=X-Auth-Token`，按实际思源版本可改为兼容方式。
 - `LLM_PROVIDER=disabled` 时允许纯人工流程。
-- 数据库密码、管理员 Token、思源 Token 和模型密钥必须使用 secret 文件。
+- `MEMORY_HUB_ADMIN_USERNAME` 配置单管理员用户名。
+- `MEMORY_HUB_ADMIN_PASSWORD_FILE` 指向管理员初始密码的 Docker Secret 文件；生产环境不允许使用开发默认密码。
+- `MEMORY_HUB_SESSION_TTL_MS` 配置登录会话有效期，默认 7 天。
+- 数据库密码、管理员密码、思源 Token 和模型密钥必须使用 secret 文件。
 
 ## 健康检查
 

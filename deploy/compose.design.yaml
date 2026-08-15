@@ -28,10 +28,10 @@ services:
       DATABASE_URL: postgresql://memoryhub@postgres:5432/memoryhub
       SIYUAN_BASE_URL: http://192.168.1.10:1166
       POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
-      MEMORY_HUB_ADMIN_TOKEN_FILE: /run/secrets/admin_token
+      MEMORY_HUB_ADMIN_PASSWORD_FILE: /run/secrets/admin_password
     secrets:
       - postgres_password
-      - admin_token
+      - admin_password
     depends_on:
       postgres:
         condition: service_healthy
@@ -63,8 +63,8 @@ services:
 secrets:
   postgres_password:
     file: ./secrets/postgres_password
-  admin_token:
-    file: ./secrets/admin_token
+  admin_password:
+    file: ./secrets/admin_password
   siyuan_token:
     file: ./secrets/siyuan_token
   llm_api_key:
