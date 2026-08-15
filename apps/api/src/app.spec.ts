@@ -194,7 +194,7 @@ describe('MemoryHub API', () => {
       cookies: { memoryhub_session: cookie },
     })
     expect(approved.statusCode).toBe(200)
-    expect(approved.json().status).toBe('approved')
+    expect(approved.json().status).toBe('queued')
 
     const rejectCreated = await app.inject({
       method: 'POST',

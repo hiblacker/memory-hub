@@ -9,12 +9,18 @@ import {
   LoginResponseSchema,
   RejectCandidateRequestSchema,
   UpdateCandidateRequestSchema,
+  ArchiveDeliveryListSchema,
+  SiyuanSettingsSchema,
+  UpdateSiyuanSettingsSchema,
   type CandidateSummary,
 } from '@memory-hub/contracts'
 import type {
   AuthStore,
+  ApproveCandidateResult,
   CandidateMutationResult,
   CandidateRecord,
+  ArchiveDeliveryRecord,
+  ArchiveTargetRecord,
 } from '@memory-hub/database'
 import Fastify from 'fastify'
 
@@ -60,7 +66,7 @@ function toCandidateSummary(record: CandidateRecord): CandidateSummary {
 }
 
 function mutationError(
-  result: Extract<CandidateMutationResult, { ok: false }>,
+  result: Extract<CandidateMutationResult | ApproveCandidateResult, { ok: false }>,
 ) {
   if (result.code === 'NOT_FOUND') {
     return {
@@ -68,6 +74,18 @@ function mutationError(
       body: {
         error: {
           code: 'CANDIDATE_NOT_FOUND',
+          message: result.message,
+        },
+      },
+    }
+  }
+
+  if (result.code === 'NO_TARGET') {
+    return {
+      status: 409 as const,
+      body: {
+        error: {
+          code: 'ARCHIVE_TARGET_NOT_READY',
           message: result.message,
         },
       },
@@ -82,6 +100,52 @@ function mutationError(
         message: result.message,
       },
     },
+  }
+}
+
+function toDelivery(record: ArchiveDeliveryRecord) {
+  return {
+    id: record.id,
+    candidateId: record.candidateId,
+    memoryVersionId: record.memoryVersionId,
+    targetId: record.targetId,
+    status: record.status,
+    attemptCount: record.attemptCount,
+    documentId: record.documentId,
+    blockId: record.blockId,
+    path: record.path,
+    requestFingerprint: record.requestFingerprint,
+    lastErrorCode: record.lastErrorCode,
+    lastErrorMessage: record.lastErrorMessage,
+    nextAttemptAt: record.nextAttemptAt?.toISOString() ?? null,
+    succeededAt: record.succeededAt?.toISOString() ?? null,
+    createdAt: record.createdAt.toISOString(),
+    updatedAt: record.updatedAt.toISOString(),
+  }
+}
+
+function tokenConfigured(): boolean {
+  return Boolean(
+    process.env.SIYUAN_TOKEN?.trim() || process.env.SIYUAN_TOKEN_FILE?.trim(),
+  )
+}
+
+function toSiyuanSettings(target: ArchiveTargetRecord) {
+  return {
+    id: target.id,
+    name: target.name,
+    enabled: target.enabled,
+    baseUrl: target.baseUrl,
+    authHeader: target.authHeader,
+    notebookId: target.notebookId,
+    notebookName: target.notebookName,
+    pathTemplate: target.pathTemplate,
+    allowedHosts: target.allowedHosts,
+    lastTestStatus: target.lastTestStatus,
+    lastTestMessage: target.lastTestMessage,
+    lastTestedAt: target.lastTestedAt?.toISOString() ?? null,
+    updatedAt: target.updatedAt.toISOString(),
+    tokenConfigured: tokenConfigured(),
   }
 }
 
@@ -329,6 +393,169 @@ export function buildApp({
       return reply.send(toCandidateSummary(result.candidate))
     },
   )
+
+  app.get('/api/v1/settings/siyuan', async (request, reply) => {
+    const user = await resolveSessionUser(
+      authStore,
+      request.cookies[SESSION_COOKIE_NAME],
+    )
+    if (!user) return reply.status(401).send(authError)
+    const target = await authStore.getDefaultArchiveTarget()
+    if (!target) {
+      return reply.status(404).send({
+        error: {
+          code: 'ARCHIVE_TARGET_NOT_FOUND',
+          message: '未找到思源归档目标。',
+        },
+      })
+    }
+    return reply.send(SiyuanSettingsSchema.parse(toSiyuanSettings(target)))
+  })
+
+  app.put('/api/v1/settings/siyuan', async (request, reply) => {
+    const user = await resolveSessionUser(
+      authStore,
+      request.cookies[SESSION_COOKIE_NAME],
+    )
+    if (!user) return reply.status(401).send(authError)
+    const parsed = UpdateSiyuanSettingsSchema.safeParse(request.body)
+    if (!parsed.success) {
+      return reply.status(400).send({
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: '请提供有效的思源配置。',
+        },
+      })
+    }
+    const updated = await authStore.upsertDefaultArchiveTarget({
+      baseUrl: parsed.data.baseUrl,
+      ...(parsed.data.name !== undefined ? { name: parsed.data.name } : {}),
+      ...(parsed.data.enabled !== undefined
+        ? { enabled: parsed.data.enabled }
+        : {}),
+      ...(parsed.data.authHeader !== undefined
+        ? { authHeader: parsed.data.authHeader }
+        : {}),
+      ...(parsed.data.notebookId !== undefined
+        ? { notebookId: parsed.data.notebookId }
+        : {}),
+      ...(parsed.data.notebookName !== undefined
+        ? { notebookName: parsed.data.notebookName }
+        : {}),
+      ...(parsed.data.pathTemplate !== undefined
+        ? { pathTemplate: parsed.data.pathTemplate }
+        : {}),
+      ...(parsed.data.allowedHosts !== undefined
+        ? { allowedHosts: parsed.data.allowedHosts }
+        : {}),
+    })
+    await authStore.writeAudit({
+      actorType: 'user',
+      actorId: user.id,
+      action: 'settings.siyuan.update',
+      entityType: 'archive_target',
+      entityId: updated.id,
+      summary: '更新思源归档目标配置',
+    })
+    return reply.send(SiyuanSettingsSchema.parse(toSiyuanSettings(updated)))
+  })
+
+  app.post('/api/v1/settings/siyuan/test', async (request, reply) => {
+    const user = await resolveSessionUser(
+      authStore,
+      request.cookies[SESSION_COOKIE_NAME],
+    )
+    if (!user) return reply.status(401).send(authError)
+    const target = await authStore.getDefaultArchiveTarget()
+    if (!target) {
+      return reply.status(404).send({
+        error: {
+          code: 'ARCHIVE_TARGET_NOT_FOUND',
+          message: '未找到思源归档目标。',
+        },
+      })
+    }
+    if (!tokenConfigured()) {
+      await authStore.updateArchiveTargetTestResult(target.id, {
+        status: 'failed',
+        message: '未配置 SIYUAN_TOKEN / SIYUAN_TOKEN_FILE。',
+      })
+      const failed = await authStore.getDefaultArchiveTarget()
+      return reply.status(409).send({
+        error: {
+          code: 'SIYUAN_TOKEN_MISSING',
+          message: '未配置思源 Token。',
+        },
+        settings: failed
+          ? SiyuanSettingsSchema.parse(toSiyuanSettings(failed))
+          : undefined,
+      })
+    }
+
+    await authStore.enqueueSiyuanTest(target.id)
+    await authStore.updateArchiveTargetTestResult(target.id, {
+      status: 'failed',
+      message: '测试已排队，等待 Worker 执行…',
+    })
+    const latest = await authStore.getDefaultArchiveTarget()
+    return reply.send(SiyuanSettingsSchema.parse(toSiyuanSettings(latest!)))
+  })
+
+  app.get('/api/v1/candidates/:candidateId/deliveries', async (request, reply) => {
+    const user = await resolveSessionUser(
+      authStore,
+      request.cookies[SESSION_COOKIE_NAME],
+    )
+    if (!user) return reply.status(401).send(authError)
+    const { candidateId } = request.params as { candidateId: string }
+    const candidate = await authStore.getCandidate(candidateId)
+    if (!candidate) {
+      return reply.status(404).send({
+        error: {
+          code: 'CANDIDATE_NOT_FOUND',
+          message: '候选记忆不存在。',
+        },
+      })
+    }
+    const items = (await authStore.listDeliveriesForCandidate(candidateId)).map(
+      toDelivery,
+    )
+    return reply.send(ArchiveDeliveryListSchema.parse({ items }))
+  })
+
+  app.post(
+    '/api/v1/deliveries/:deliveryId/retry',
+    async (request, reply) => {
+      const user = await resolveSessionUser(
+        authStore,
+        request.cookies[SESSION_COOKIE_NAME],
+      )
+      if (!user) return reply.status(401).send(authError)
+      const { deliveryId } = request.params as { deliveryId: string }
+      const delivery = await authStore.enqueueDeliveryRetry(deliveryId)
+      if (!delivery) {
+        return reply.status(404).send({
+          error: {
+            code: 'DELIVERY_NOT_FOUND',
+            message: '归档交付不存在。',
+          },
+        })
+      }
+      return reply.send(toDelivery(delivery))
+    },
+  )
+
+  app.get('/api/v1/archives', async (request, reply) => {
+    const user = await resolveSessionUser(
+      authStore,
+      request.cookies[SESSION_COOKIE_NAME],
+    )
+    if (!user) return reply.status(401).send(authError)
+    const items = (await authStore.listArchivedCandidates()).map(
+      toCandidateSummary,
+    )
+    return reply.send(CandidateListSchema.parse({ items }))
+  })
 
   return app
 }
