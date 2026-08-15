@@ -4,3 +4,4 @@ coverage
 data
 pnpm-lock.yaml
 .pnpm-store
+docs/designs/*.html
