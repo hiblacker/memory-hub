@@ -312,7 +312,7 @@ function confirmReject() {
             placeholder="可选，例如 memory-hub"
           />
         </NFormItem>
-        <NFormItem label="正文" required>
+        <NFormItem label="正文" required class="md-body-field">
           <MemoryMarkdownEditor
             v-model="form.body"
             v-model:render-style="form.renderStyle"
@@ -379,3 +379,4 @@ function confirmReject() {
     </section>
   </AppShell>
 </template>
+

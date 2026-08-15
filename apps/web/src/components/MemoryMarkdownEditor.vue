@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { MemoryType, RenderStyle } from '@memory-hub/contracts'
+import { Maximize2, Minimize2 } from 'lucide-vue-next'
 import {
   NAlert,
   NButton,
@@ -10,7 +11,7 @@ import {
   NSwitch,
   useDialog,
 } from 'naive-ui'
-import { computed, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
 import { renderMarkdownPreview } from '../markdown/render'
 import { buildMemoryTemplate, QUICK_EMOJIS } from '../markdown/templates'
@@ -38,6 +39,7 @@ const emit = defineEmits<{
 
 const dialog = useDialog()
 const mode = ref<'preview' | 'edit' | 'split'>('preview')
+const isFullscreen = ref(false)
 
 const styleOptions = [
   { label: '小红书笔记风', value: 'xhs_note' },
@@ -57,9 +59,33 @@ watch(
   { immediate: true },
 )
 
+watch(isFullscreen, (fullscreen) => {
+  document.body.classList.toggle('md-fullscreen-open', fullscreen)
+})
+
+function onKeydown(event: KeyboardEvent) {
+  if (event.key === 'Escape' && isFullscreen.value) {
+    event.preventDefault()
+    isFullscreen.value = false
+  }
+}
+
+onMounted(() => {
+  window.addEventListener('keydown', onKeydown)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('keydown', onKeydown)
+  document.body.classList.remove('md-fullscreen-open')
+})
+
 function setMode(next: 'preview' | 'edit' | 'split') {
   if (isReadonly.value && next !== 'preview') return
   mode.value = next
+}
+
+function toggleFullscreen() {
+  isFullscreen.value = !isFullscreen.value
 }
 
 function updateBody(value: string) {
@@ -119,35 +145,46 @@ function insertEmoji(emoji: string) {
 </script>
 
 <template>
-  <div class="md-editor" :class="[`style-${renderStyle}`, { readonly }]">
+  <div
+    class="md-editor"
+    :class="[
+      `style-${renderStyle}`,
+      {
+        readonly: isReadonly,
+        'is-fullscreen': isFullscreen,
+      },
+    ]"
+  >
     <div class="md-toolbar">
-      <NButtonGroup size="small">
-        <NButton
-          :type="mode === 'preview' ? 'primary' : 'default'"
-          @click="setMode('preview')"
-        >
-          仅预览
-        </NButton>
-        <NButton
-          :disabled="isReadonly"
-          :type="mode === 'edit' ? 'primary' : 'default'"
-          @click="setMode('edit')"
-        >
-          编辑
-        </NButton>
-        <NButton
-          :disabled="isReadonly"
-          :type="mode === 'split' ? 'primary' : 'default'"
-          @click="setMode('split')"
-        >
-          分屏
-        </NButton>
-      </NButtonGroup>
+      <div class="md-toolbar-left">
+        <NButtonGroup size="small">
+          <NButton
+            :type="mode === 'preview' ? 'primary' : 'default'"
+            @click="setMode('preview')"
+          >
+            仅预览
+          </NButton>
+          <NButton
+            :disabled="isReadonly"
+            :type="mode === 'edit' ? 'primary' : 'default'"
+            @click="setMode('edit')"
+          >
+            编辑
+          </NButton>
+          <NButton
+            :disabled="isReadonly"
+            :type="mode === 'split' ? 'primary' : 'default'"
+            @click="setMode('split')"
+          >
+            分屏
+          </NButton>
+        </NButtonGroup>
+      </div>
 
       <div class="md-toolbar-controls">
         <NSelect
           size="small"
-          style="width: 150px"
+          class="md-style-select"
           :value="renderStyle"
           :options="styleOptions"
           :disabled="isReadonly"
@@ -164,6 +201,13 @@ function insertEmoji(emoji: string) {
         </label>
         <NButton size="small" :disabled="isReadonly" @click="applyTemplate">
           套用模板
+        </NButton>
+        <NButton size="small" secondary @click="toggleFullscreen">
+          <template #icon>
+            <Minimize2 v-if="isFullscreen" :size="15" />
+            <Maximize2 v-else :size="15" />
+          </template>
+          {{ isFullscreen ? '退出全屏' : '全屏' }}
         </NButton>
       </div>
     </div>
@@ -211,9 +255,11 @@ function insertEmoji(emoji: string) {
       <div v-if="mode !== 'preview'" class="md-edit-pane">
         <NInput
           type="textarea"
+          class="md-textarea-input"
           :value="modelValue"
           :disabled="isReadonly"
-          :autosize="{ minRows: 28, maxRows: 60 }"
+          :autosize="false"
+          :rows="1"
           maxlength="20000"
           show-count
           placeholder="使用 Markdown 编写记忆正文"
@@ -248,16 +294,16 @@ function insertEmoji(emoji: string) {
 
     <div class="md-footer">
       <span>{{ charCount }} / 20000</span>
-      <span>{{
-        mode === 'preview'
-          ? '预览模式'
-          : mode === 'edit'
-            ? '编辑模式'
-            : '分屏模式'
-      }}</span>
+      <span>
+        {{
+          mode === 'preview'
+            ? '预览模式'
+            : mode === 'edit'
+              ? '编辑模式'
+              : '分屏模式'
+        }}
+        <template v-if="isFullscreen"> · 全屏中，按 Esc 退出</template>
+      </span>
     </div>
   </div>
 </template>
-
-
-
