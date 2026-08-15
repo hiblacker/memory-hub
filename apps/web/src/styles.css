@@ -533,7 +533,7 @@ input {
   flex: 1 1 auto;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
 }
 
 .detail-meta-inline {
@@ -571,21 +571,38 @@ input {
   flex: none;
   width: 100%;
   max-width: 720px;
+  margin-top: 0;
 }
 
 .detail-fields-form .n-form-item {
   margin-bottom: 0;
+  --n-label-padding: 0 8px 0 0;
+  --n-feedback-height: 0px;
+  --n-feedback-padding: 0;
+}
+
+.detail-fields-form .n-form-item-label {
+  width: auto !important;
+  min-width: auto !important;
+  max-width: none !important;
+  flex: 0 0 auto !important;
+  white-space: nowrap;
+  padding-right: 8px;
+}
+
+.detail-fields-form .n-form-item-blank {
+  min-height: 30px;
 }
 
 .detail-field-title {
   max-width: 100%;
-  margin-bottom: 20px !important;
+  margin-bottom: 8px !important;
 }
 
 .detail-field-pair {
   display: flex;
   align-items: flex-start;
-  gap: 16px;
+  gap: 12px;
   flex-wrap: wrap;
 }
 

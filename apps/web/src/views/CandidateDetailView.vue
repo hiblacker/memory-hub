@@ -292,9 +292,9 @@ function confirmReject() {
           <NForm
             class="detail-fields-form"
             label-placement="left"
-            label-width="48"
+            label-width="auto"
             require-mark-placement="right-hanging"
-            size="medium"
+            size="small"
           >
             <NFormItem label="标题" required class="detail-field-title">
               <NInput
