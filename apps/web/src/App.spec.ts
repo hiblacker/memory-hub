@@ -4,8 +4,14 @@ import { createPinia } from 'pinia'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import App from './App.vue'
+import { showApiErrorToast } from './feedback'
 import { createQueryClient } from './query-client'
 import { createAppRouter } from './router'
+
+vi.mock('./feedback', () => ({
+  showApiErrorToast: vi.fn(),
+  showSuccessToast: vi.fn(),
+}))
 
 function jsonResponse(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -107,7 +113,8 @@ describe('MemoryHub Web', () => {
     expect(wrapper.text()).toContain('还没有候选记忆')
   })
 
-  it('登录失败时保留登录页并显示错误', async () => {
+  it('登录失败时保留登录页并通过顶部 toast 显示错误', async () => {
+    vi.mocked(showApiErrorToast).mockClear()
     vi.stubGlobal(
       'fetch',
       vi.fn(async () =>
@@ -131,7 +138,8 @@ describe('MemoryHub Web', () => {
     await flushPromises()
 
     expect(router.currentRoute.value.path).toBe('/login')
-    expect(wrapper.text()).toContain('用户名或密码错误。')
+    expect(wrapper.text()).toContain('登录管理端')
+    expect(showApiErrorToast).toHaveBeenCalledWith('用户名或密码错误。')
   })
 
   it('可手动录入候选并返回收件箱', async () => {
