@@ -93,7 +93,7 @@ export const archiveTargets = pgTable('archive_targets', {
   name: text('name').notNull(),
   enabled: boolean('enabled').notNull().default(true),
   baseUrl: text('base_url').notNull(),
-  authHeader: text('auth_header').notNull().default('X-Auth-Token'),
+  authHeader: text('auth_header').notNull().default('Authorization'),
   notebookId: text('notebook_id'),
   notebookName: text('notebook_name'),
   pathTemplate: text('path_template')

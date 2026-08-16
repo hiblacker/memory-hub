@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { SiyuanClient, SiyuanError } from './index.js'
 
 describe('SiyuanClient', () => {
-  it('lists notebooks with X-Auth-Token', async () => {
+  it('lists notebooks with Authorization Token by default', async () => {
     const fetchImpl = vi.fn(async () =>
       Response.json({
         code: 0,
@@ -23,8 +23,8 @@ describe('SiyuanClient', () => {
     expect(notebooks).toEqual([{ id: 'nb1', name: 'Main', closed: false }])
     expect(fetchImpl).toHaveBeenCalledOnce()
     const init = fetchImpl.mock.calls[0]?.[1] as RequestInit
-    expect((init.headers as Record<string, string>)['X-Auth-Token']).toBe(
-      'secret-token',
+    expect((init.headers as Record<string, string>).Authorization).toBe(
+      'Token secret-token',
     )
   })
 

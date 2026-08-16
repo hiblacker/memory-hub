@@ -32,6 +32,7 @@ import {
   verifyPassword,
 } from './auth.js'
 import { registerIngestionRoutes } from './ingestion-routes.js'
+import { runSiyuanConnectionTest } from './siyuan-test.js'
 
 interface BuildAppOptions {
   authStore: AuthStore
@@ -502,7 +503,7 @@ export function buildApp({
       return reply.status(409).send({
         error: {
           code: 'SIYUAN_TOKEN_MISSING',
-          message: '未配置思源 Token。',
+          message: '未配置思源 Token。请在仓库根目录 .env 设置 SIYUAN_TOKEN 后重启 API/Worker。',
         },
         settings: failed
           ? SiyuanSettingsSchema.parse(toSiyuanSettings(failed))
@@ -510,13 +511,55 @@ export function buildApp({
       })
     }
 
-    await authStore.enqueueSiyuanTest(target.id)
+    // Server-side immediate test: Token never leaves the API process / never reaches Web.
+    const result = await runSiyuanConnectionTest(target)
+    if (result.ok) {
+      // Persist working auth mode + selected notebook so archive jobs can run immediately.
+      await authStore.upsertDefaultArchiveTarget({
+        baseUrl: target.baseUrl,
+        notebookId: result.notebookId ?? target.notebookId,
+        notebookName: result.notebookName ?? target.notebookName,
+        authHeader: result.authHeader ?? target.authHeader,
+      })
+      await authStore.updateArchiveTargetTestResult(target.id, {
+        status: 'succeeded',
+        message: result.message,
+        notebookName: result.notebookName ?? null,
+      })
+      await authStore.writeAudit({
+        actorType: 'user',
+        actorId: user.id,
+        action: 'settings.siyuan.test_succeeded',
+        entityType: 'archive_target',
+        entityId: target.id,
+        summary: result.message,
+      })
+      const latest = await authStore.getDefaultArchiveTarget()
+      return reply.send(SiyuanSettingsSchema.parse(toSiyuanSettings(latest!)))
+    }
+
     await authStore.updateArchiveTargetTestResult(target.id, {
       status: 'failed',
-      message: '测试已排队，等待 Worker 执行…',
+      message: result.message,
     })
-    const latest = await authStore.getDefaultArchiveTarget()
-    return reply.send(SiyuanSettingsSchema.parse(toSiyuanSettings(latest!)))
+    await authStore.writeAudit({
+      actorType: 'user',
+      actorId: user.id,
+      action: 'settings.siyuan.test_failed',
+      entityType: 'archive_target',
+      entityId: target.id,
+      summary: result.message,
+    })
+    const failed = await authStore.getDefaultArchiveTarget()
+    return reply.status(502).send({
+      error: {
+        code: 'SIYUAN_TEST_FAILED',
+        message: result.message,
+      },
+      settings: failed
+        ? SiyuanSettingsSchema.parse(toSiyuanSettings(failed))
+        : undefined,
+    })
   })
 
   app.get('/api/v1/candidates/:candidateId/deliveries', async (request, reply) => {

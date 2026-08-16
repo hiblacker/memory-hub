@@ -1053,6 +1053,13 @@ body.md-fullscreen-open {
 
 
 
+.settings-header-tags {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
 .settings-panel {
   padding: 16px 18px 20px;
 }

@@ -17,6 +17,7 @@
     "@fastify/cors": "^11.3.0",
     "@memory-hub/contracts": "workspace:*",
     "@memory-hub/database": "workspace:*",
+    "@memory-hub/siyuan": "workspace:*",
     "fastify": "^5.2.0",
     "zod": "^3.24.1"
   },

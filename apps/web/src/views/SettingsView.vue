@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { NAlert, NButton, NForm, NFormItem, NInput, NSwitch, NTag } from 'naive-ui'
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 
 import {
@@ -13,11 +13,12 @@ import AppShell from '../components/AppShell.vue'
 
 const queryClient = useQueryClient()
 const errorMessage = ref('')
+const successMessage = ref('')
 const form = ref({
   name: '',
   enabled: true,
   baseUrl: '',
-  authHeader: 'X-Auth-Token',
+  authHeader: 'Authorization',
   notebookId: '',
   notebookName: '',
   pathTemplate: '/MemoryHub/10 长期记忆/{type}',
@@ -47,6 +48,30 @@ watch(
   { immediate: true },
 )
 
+const lastTestStatus = computed(
+  () => settingsQuery.data.value?.lastTestStatus ?? null,
+)
+const lastTestLabel = computed(() => {
+  switch (lastTestStatus.value) {
+    case 'succeeded':
+      return '成功'
+    case 'failed':
+      return '失败'
+    default:
+      return '未测试'
+  }
+})
+const lastTestTagType = computed(() => {
+  switch (lastTestStatus.value) {
+    case 'succeeded':
+      return 'success' as const
+    case 'failed':
+      return 'error' as const
+    default:
+      return 'default' as const
+  }
+})
+
 const saveMutation = useMutation({
   mutationFn: () =>
     updateSiyuanSettings({
@@ -61,9 +86,11 @@ const saveMutation = useMutation({
     }),
   onSuccess: async () => {
     errorMessage.value = ''
+    successMessage.value = '配置已保存。'
     await queryClient.invalidateQueries({ queryKey: ['settings', 'siyuan'] })
   },
   onError: (error) => {
+    successMessage.value = ''
     errorMessage.value =
       error instanceof ApiError ? error.message : '保存失败。'
   },
@@ -71,11 +98,19 @@ const saveMutation = useMutation({
 
 const testMutation = useMutation({
   mutationFn: testSiyuanSettings,
-  onSuccess: async () => {
+  onSuccess: async (data) => {
     errorMessage.value = ''
+    successMessage.value = data.lastTestMessage || '连接测试成功。'
+    form.value = {
+      ...form.value,
+      authHeader: data.authHeader,
+      notebookId: data.notebookId ?? '',
+      notebookName: data.notebookName ?? '',
+    }
     await queryClient.invalidateQueries({ queryKey: ['settings', 'siyuan'] })
   },
   onError: (error) => {
+    successMessage.value = ''
     errorMessage.value =
       error instanceof ApiError ? error.message : '连接测试失败。'
     void queryClient.invalidateQueries({ queryKey: ['settings', 'siyuan'] })
@@ -87,9 +122,17 @@ const testMutation = useMutation({
   <AppShell active-nav="settings" title="思源连接" context="归档目标与鉴权引用">
     <div class="page-stack">
       <NAlert v-if="errorMessage" type="error" class="page-alert">{{ errorMessage }}</NAlert>
+      <NAlert v-if="successMessage" type="success" class="page-alert">{{ successMessage }}</NAlert>
       <NAlert type="info" class="page-alert">
-        Token 不进入浏览器。请在 Worker/API 运行环境配置
-        <code>SIYUAN_TOKEN</code> 或 <code>SIYUAN_TOKEN_FILE</code>。
+        Token 不进入浏览器。请在仓库根目录
+        <code>.env</code>
+        配置
+        <code>SIYUAN_TOKEN</code>
+        或
+        <code>SIYUAN_TOKEN_FILE</code>
+        ，然后重启 API / Worker。思源 3.x 默认使用
+        <code>Authorization: Token &lt;token&gt;</code>
+        。
       </NAlert>
 
       <section class="panel settings-panel">
@@ -98,9 +141,14 @@ const testMutation = useMutation({
             <h2>默认思源目标</h2>
             <p>批准后的记忆由 Worker 幂等写入该目标。</p>
           </div>
-          <NTag size="small" :type="settingsQuery.data.value?.tokenConfigured ? 'success' : 'warning'">
-            {{ settingsQuery.data.value?.tokenConfigured ? 'Token 已配置' : 'Token 未配置' }}
-          </NTag>
+          <div class="settings-header-tags">
+            <NTag size="small" :type="settingsQuery.data.value?.tokenConfigured ? 'success' : 'warning'">
+              {{ settingsQuery.data.value?.tokenConfigured ? 'Token 已配置' : 'Token 未配置' }}
+            </NTag>
+            <NTag size="small" :type="lastTestTagType">
+              最近测试：{{ lastTestLabel }}
+            </NTag>
+          </div>
         </header>
 
         <NForm label-placement="top" class="settings-form">
@@ -114,7 +162,7 @@ const testMutation = useMutation({
             <NInput v-model:value="form.baseUrl" placeholder="http://192.168.1.10:1166" />
           </NFormItem>
           <NFormItem label="鉴权请求头">
-            <NInput v-model:value="form.authHeader" placeholder="X-Auth-Token" />
+            <NInput v-model:value="form.authHeader" placeholder="Authorization（思源 3.x 常用）或 X-Auth-Token" />
           </NFormItem>
           <NFormItem label="笔记本 ID">
             <NInput v-model:value="form.notebookId" placeholder="连接测试成功后可自动回填" />
@@ -133,7 +181,7 @@ const testMutation = useMutation({
         <div class="settings-meta" v-if="settingsQuery.data.value">
           <div>
             <span class="meta-k">最近测试</span>
-            <span class="meta-v">{{ settingsQuery.data.value.lastTestStatus || '—' }}</span>
+            <span class="meta-v">{{ lastTestLabel }}</span>
           </div>
           <div>
             <span class="meta-k">测试信息</span>
@@ -150,6 +198,8 @@ const testMutation = useMutation({
             保存配置
           </NButton>
           <NButton
+            type="info"
+            secondary
             :loading="testMutation.isPending.value"
             @click="testMutation.mutate()"
           >

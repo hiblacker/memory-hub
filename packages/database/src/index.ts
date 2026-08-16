@@ -657,7 +657,7 @@ export function createDatabase(databaseUrl: string): AuthStore & {
               name text NOT NULL,
               enabled boolean NOT NULL DEFAULT true,
               base_url text NOT NULL,
-              auth_header text NOT NULL DEFAULT 'X-Auth-Token',
+              auth_header text NOT NULL DEFAULT 'Authorization',
               notebook_id text,
               notebook_name text,
               path_template text NOT NULL DEFAULT '/MemoryHub/10 长期记忆/{type}',
@@ -718,7 +718,7 @@ export function createDatabase(databaseUrl: string): AuthStore & {
               '默认思源目标',
               true,
               'http://192.168.1.10:1166',
-              'X-Auth-Token',
+              'Authorization',
               '/MemoryHub/10 长期记忆/{type}',
               '192.168.1.10,127.0.0.1,localhost'
             ) ON CONFLICT (id) DO NOTHING;
@@ -1020,7 +1020,7 @@ export function createDatabase(databaseUrl: string): AuthStore & {
           name: input.name ?? '默认思源目标',
           enabled: input.enabled ?? true,
           baseUrl: input.baseUrl,
-          authHeader: input.authHeader ?? 'X-Auth-Token',
+          authHeader: input.authHeader ?? 'Authorization',
           notebookId: input.notebookId ?? null,
           notebookName: input.notebookName ?? null,
           pathTemplate:
@@ -1329,7 +1329,7 @@ export function createMemoryStore(): AuthStore {
     name: '默认思源目标',
     enabled: true,
     baseUrl: 'http://192.168.1.10:1166',
-    authHeader: 'X-Auth-Token',
+    authHeader: 'Authorization',
     notebookId: 'notebook-dev',
     notebookName: 'Dev Notebook',
     pathTemplate: '/MemoryHub/10 长期记忆/{type}',

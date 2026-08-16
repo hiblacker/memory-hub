@@ -84,7 +84,7 @@ export function loadSiyuanToken(environment: NodeJS.ProcessEnv = process.env): s
 export function resolveAuthMode(
   headerName: string | undefined,
 ): SiyuanAuthMode {
-  const normalized = (headerName ?? 'X-Auth-Token').trim().toLowerCase()
+  const normalized = (headerName ?? 'Authorization').trim().toLowerCase()
   if (normalized === 'authorization' || normalized === 'authorization: token') {
     return 'authorization_token'
   }
@@ -105,7 +105,7 @@ export class SiyuanClient {
     if (!this.token) {
       throw new SiyuanError('思源 Token 不能为空。', 'SIYUAN_TOKEN_MISSING')
     }
-    this.authMode = options.authMode ?? 'x_auth_token'
+    this.authMode = options.authMode ?? 'authorization_token'
     this.timeoutMs = options.timeoutMs ?? 15_000
     this.fetchImpl = options.fetchImpl ?? fetch
     this.allowedHosts =

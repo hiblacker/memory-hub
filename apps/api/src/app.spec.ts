@@ -1,5 +1,5 @@
 import { createInMemoryAuthStore } from '@memory-hub/database'
-import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 
 import { buildApp } from './app.js'
 import { hashPassword } from './auth.js'
@@ -270,5 +270,62 @@ describe('MemoryHub API', () => {
     })
     expect(response.statusCode).toBe(400)
     expect(response.json().error.code).toBe('VALIDATION_ERROR')
+  })
+
+  it('未配置思源 Token 时测试连接返回 409', async () => {
+    const previousToken = process.env.SIYUAN_TOKEN
+    const previousFile = process.env.SIYUAN_TOKEN_FILE
+    delete process.env.SIYUAN_TOKEN
+    delete process.env.SIYUAN_TOKEN_FILE
+    try {
+      const cookie = await loginCookie()
+      const response = await app.inject({
+        method: 'POST',
+        url: '/api/v1/settings/siyuan/test',
+        cookies: { memoryhub_session: cookie },
+        payload: {},
+      })
+      expect(response.statusCode).toBe(409)
+      expect(response.json().error.code).toBe('SIYUAN_TOKEN_MISSING')
+    } finally {
+      if (previousToken === undefined) delete process.env.SIYUAN_TOKEN
+      else process.env.SIYUAN_TOKEN = previousToken
+      if (previousFile === undefined) delete process.env.SIYUAN_TOKEN_FILE
+      else process.env.SIYUAN_TOKEN_FILE = previousFile
+    }
+  })
+
+  it('思源连接测试成功后回填笔记本信息', async () => {
+    const previousToken = process.env.SIYUAN_TOKEN
+    process.env.SIYUAN_TOKEN = 'demo-token-1234'
+    const originalFetch = globalThis.fetch
+    globalThis.fetch = vi.fn(async () =>
+      Response.json({
+        code: 0,
+        data: {
+          notebooks: [{ id: 'nb-work', name: 'WorkSpace', closed: false }],
+        },
+      }),
+    ) as unknown as typeof fetch
+    try {
+      const cookie = await loginCookie()
+      const response = await app.inject({
+        method: 'POST',
+        url: '/api/v1/settings/siyuan/test',
+        cookies: { memoryhub_session: cookie },
+        payload: {},
+      })
+      expect(response.statusCode).toBe(200)
+      expect(response.json()).toMatchObject({
+        lastTestStatus: 'succeeded',
+        notebookId: 'nb-work',
+        notebookName: 'WorkSpace',
+        tokenConfigured: true,
+      })
+    } finally {
+      globalThis.fetch = originalFetch
+      if (previousToken === undefined) delete process.env.SIYUAN_TOKEN
+      else process.env.SIYUAN_TOKEN = previousToken
+    }
   })
 })

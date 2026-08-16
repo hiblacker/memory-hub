@@ -44,6 +44,9 @@ importers:
       '@memory-hub/database':
         specifier: workspace:*
         version: link:../../packages/database
+      '@memory-hub/siyuan':
+        specifier: workspace:*
+        version: link:../../packages/siyuan
       fastify:
         specifier: ^5.2.0
         version: 5.12.0
