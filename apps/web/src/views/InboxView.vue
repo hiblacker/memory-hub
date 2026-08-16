@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { CirclePlus, ShieldCheck } from 'lucide-vue-next'
 import {
-  NAlert,
   NButton,
   NEmpty,
   NSpin,
@@ -87,14 +86,6 @@ function summaryText(body: string) {
         </NButton>
       </div>
     </div>
-
-    <NAlert
-      v-if="homeQuery.isError.value || candidatesQuery.isError.value"
-      type="error"
-      class="page-alert"
-    >
-      无法加载候选记忆，请检查 API 与数据库连接后重试。
-    </NAlert>
 
     <section class="queue-summary" aria-label="队列摘要">
       <div>

@@ -24,6 +24,8 @@ import {
   type User,
 } from '@memory-hub/contracts'
 
+import { showApiErrorToast } from './feedback'
+
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? ''
 
 export class ApiError extends Error {
@@ -36,6 +38,16 @@ export class ApiError extends Error {
   }
 }
 
+function toApiError(
+  status: number,
+  code: string,
+  message: string,
+): ApiError {
+  const error = new ApiError(status, code, message)
+  showApiErrorToast(error.message)
+  return error
+}
+
 async function request(path: string, init?: RequestInit): Promise<unknown> {
   const headers = new Headers(init?.headers)
   // Fastify rejects empty bodies when Content-Type is application/json.
@@ -43,17 +55,22 @@ async function request(path: string, init?: RequestInit): Promise<unknown> {
     headers.set('Content-Type', 'application/json')
   }
 
-  const response = await fetch(`${apiBaseUrl}${path}`, {
-    ...init,
-    credentials: 'include',
-    headers,
-  })
+  let response: Response
+  try {
+    response = await fetch(`${apiBaseUrl}${path}`, {
+      ...init,
+      credentials: 'include',
+      headers,
+    })
+  } catch {
+    throw toApiError(0, 'NETWORK_ERROR', '网络异常，请检查连接后重试。')
+  }
 
   if (!response.ok) {
     const payload = (await response.json().catch(() => undefined)) as
       | { error?: { code?: string; message?: string } }
       | undefined
-    throw new ApiError(
+    throw toApiError(
       response.status,
       payload?.error?.code ?? 'REQUEST_FAILED',
       payload?.error?.message ?? '请求失败，请稍后重试。',

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { NAlert, NEmpty, NSpin, NTag } from 'naive-ui'
+import { NEmpty, NSpin, NTag } from 'naive-ui'
 import { useQuery } from '@tanstack/vue-query'
 import { useRouter } from 'vue-router'
 
@@ -26,10 +26,6 @@ const typeLabels: Record<string, string> = {
 <template>
   <AppShell active-nav="archives" title="归档记录" context="已成功写入思源的记忆">
     <div class="page-stack">
-      <NAlert v-if="archivesQuery.isError.value" type="error" class="page-alert">
-        加载归档列表失败。
-      </NAlert>
-
       <div v-if="archivesQuery.isLoading.value" class="page-loading">
         <NSpin size="large" />
       </div>

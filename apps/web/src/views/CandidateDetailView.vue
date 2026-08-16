@@ -24,7 +24,7 @@ import { useRoute, useRouter } from 'vue-router'
 
 import AppShell from '../components/AppShell.vue'
 import MemoryMarkdownEditor from '../components/MemoryMarkdownEditor.vue'
-import { ApiError, getCandidate, listCandidateDeliveries, retryDelivery } from '../api'
+import { getCandidate, listCandidateDeliveries, retryDelivery } from '../api'
 import {
   candidateQueryKey,
   homeQueryKey,
@@ -129,16 +129,6 @@ const canSave = computed(
     form.body.trim().length > 0,
 )
 
-const errorMessage = computed(() => {
-  const error =
-    candidateQuery.error.value ??
-    updateMutation.error.value ??
-    approveMutation.error.value ??
-    rejectMutation.error.value
-  if (error instanceof ApiError) return error.message
-  return error ? '暂时无法处理该候选，请稍后重试。' : ''
-})
-
 const statusType = computed(() => {
   switch (candidateQuery.data.value?.status) {
     case 'approved':
@@ -176,7 +166,7 @@ async function saveDraft() {
       emojiEnabled: form.emojiEnabled,
     },
   })
-  message.success('草稿已保存')
+  message.success('草稿已保存', { duration: 2000 })
 }
 
 function confirmApprove() {
@@ -189,7 +179,7 @@ function confirmApprove() {
     negativeText: '取消',
     onPositiveClick: async () => {
       await approveMutation.mutateAsync(candidateId.value)
-      message.success('候选已批准')
+      message.success('候选已批准', { duration: 2000 })
     },
   })
 }
@@ -227,7 +217,7 @@ function confirmReject() {
           reason: rejectReasonDraft.value.trim() || undefined,
         },
       })
-      message.success('候选已拒绝')
+      message.success('候选已拒绝', { duration: 2000 })
     },
   })
 }
@@ -265,10 +255,6 @@ function confirmReject() {
           class="detail-main"
           @submit.prevent="saveDraft"
         >
-          <NAlert v-if="errorMessage" type="error" class="page-alert compact">
-            {{ errorMessage }}
-          </NAlert>
-
           <NAlert
             v-if="candidateQuery.data.value.rejectionReason"
             type="warning"
@@ -378,8 +364,8 @@ function confirmReject() {
         </form>
 
         <section v-else class="detail-surface">
-          <NAlert type="error" class="page-alert">
-            {{ errorMessage || '候选记忆不存在或已被删除。' }}
+          <NAlert type="warning" class="page-alert">
+            候选记忆不存在或已被删除。
           </NAlert>
         </section>
       </div>

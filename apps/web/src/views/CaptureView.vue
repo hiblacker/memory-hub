@@ -1,13 +1,12 @@
 <script setup lang="ts">
 import type { MemoryType, RenderStyle } from '@memory-hub/contracts'
-import { NAlert, NButton, NForm, NFormItem, NInput, NSelect } from 'naive-ui'
+import { NButton, NForm, NFormItem, NInput, NSelect } from 'naive-ui'
 import { computed, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { Save } from 'lucide-vue-next'
 
 import AppShell from '../components/AppShell.vue'
 import MemoryMarkdownEditor from '../components/MemoryMarkdownEditor.vue'
-import { ApiError } from '../api'
 import { useCreateCandidateMutation } from '../queries'
 
 const router = useRouter()
@@ -36,23 +35,21 @@ const canSubmit = computed(
   () => form.title.trim().length > 0 && form.body.trim().length > 0,
 )
 
-const errorMessage = computed(() => {
-  const error = createMutation.error.value
-  if (error instanceof ApiError) return error.message
-  return error ? '暂时无法保存候选，请检查服务状态后重试。' : ''
-})
-
 async function submitCandidate() {
   if (!canSubmit.value || createMutation.isPending.value) return
-  await createMutation.mutateAsync({
-    title: form.title.trim(),
-    body: form.body.trim(),
-    memoryType: form.memoryType,
-    project: form.project.trim() || undefined,
-    renderStyle: form.renderStyle,
-    emojiEnabled: form.emojiEnabled,
-  })
-  await router.push('/inbox')
+  try {
+    await createMutation.mutateAsync({
+      title: form.title.trim(),
+      body: form.body.trim(),
+      memoryType: form.memoryType,
+      project: form.project.trim() || undefined,
+      renderStyle: form.renderStyle,
+      emojiEnabled: form.emojiEnabled,
+    })
+    await router.push('/inbox')
+  } catch {
+    // API errors are toasted by the shared request layer.
+  }
 }
 </script>
 
@@ -66,9 +63,6 @@ async function submitCandidate() {
     </div>
 
     <section class="capture-surface" aria-label="手动录入表单">
-      <NAlert v-if="errorMessage" type="error" class="page-alert">
-        {{ errorMessage }}
-      </NAlert>
 
       <NForm label-placement="top" @submit.prevent="submitCandidate">
         <NFormItem label="标题" required>

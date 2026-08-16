@@ -14,7 +14,6 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import type { ConnectorType } from '@memory-hub/contracts'
 
 import {
-  ApiError,
   createConnector,
   listConnectors,
   setConnectorEnabled,
@@ -23,7 +22,6 @@ import AppShell from '../components/AppShell.vue'
 
 const message = useMessage()
 const queryClient = useQueryClient()
-const errorMessage = ref('')
 const revealedKey = ref<string | null>(null)
 const form = ref({
   name: '',
@@ -51,13 +49,10 @@ const createMutation = useMutation({
   onSuccess: async (result) => {
     revealedKey.value = result.apiKey
     form.value.name = ''
-    errorMessage.value = ''
-    message.success('连接器已创建。请立即复制 API Key，之后无法再次查看。')
+    message.success('连接器已创建。请立即复制 API Key，之后无法再次查看。', {
+      duration: 2000,
+    })
     await queryClient.invalidateQueries({ queryKey: ['connectors'] })
-  },
-  onError: (error) => {
-    errorMessage.value =
-      error instanceof ApiError ? error.message : '创建连接器失败。'
   },
 })
 
@@ -66,10 +61,6 @@ const toggleMutation = useMutation({
     setConnectorEnabled(id, enabled),
   onSuccess: async () => {
     await queryClient.invalidateQueries({ queryKey: ['connectors'] })
-  },
-  onError: (error) => {
-    errorMessage.value =
-      error instanceof ApiError ? error.message : '更新连接器失败。'
   },
 })
 </script>
@@ -81,9 +72,6 @@ const toggleMutation = useMutation({
     context="为 Hook / 导入 / REST 客户端签发 API Key"
   >
     <div class="page-stack">
-      <NAlert v-if="errorMessage" type="error" class="page-alert">
-        {{ errorMessage }}
-      </NAlert>
       <NAlert type="info" class="page-alert">
         事件通过 <code>POST /api/v1/events</code> 接入。使用
         <code>Authorization: Bearer &lt;apiKey&gt;</code> 或

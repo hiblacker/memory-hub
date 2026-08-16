@@ -21,7 +21,7 @@ const themeOverrides: GlobalThemeOverrides = {
 <template>
   <NConfigProvider :theme-overrides="themeOverrides">
     <NDialogProvider>
-      <NMessageProvider>
+      <NMessageProvider placement="top" :duration="2000" :max="3">
         <NNotificationProvider>
           <slot />
         </NNotificationProvider>

@@ -1,22 +1,15 @@
 <script setup lang="ts">
 import { LogIn, ShieldCheck } from 'lucide-vue-next'
-import { NAlert, NButton, NForm, NFormItem, NInput } from 'naive-ui'
-import { computed, reactive } from 'vue'
+import { NButton, NForm, NFormItem, NInput } from 'naive-ui'
+import { reactive } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
-import { ApiError } from '../api'
 import { useLoginMutation } from '../queries'
 
 const router = useRouter()
 const route = useRoute()
 const loginMutation = useLoginMutation()
 const form = reactive({ username: '', password: '' })
-
-const errorMessage = computed(() => {
-  const error = loginMutation.error.value
-  if (error instanceof ApiError) return error.message
-  return error ? '暂时无法登录，请检查服务状态后重试。' : ''
-})
 
 async function submitLogin() {
   if (!form.username.trim() || !form.password) return
@@ -29,7 +22,7 @@ async function submitLogin() {
       typeof route.query.redirect === 'string' ? route.query.redirect : '/inbox'
     await router.replace(redirect)
   } catch {
-    // Mutation state renders the sanitized API error without losing the form values.
+    // API errors are toasted by the shared request layer.
   }
 }
 </script>
@@ -46,15 +39,6 @@ async function submitLogin() {
         <h1 id="login-title">登录管理端</h1>
         <p>审核来自 ChatGPT 和 Claude Code 的候选记忆，并归档到思源笔记。</p>
       </div>
-
-      <NAlert
-        v-if="errorMessage"
-        type="error"
-        :show-icon="true"
-        class="login-alert"
-      >
-        {{ errorMessage }}
-      </NAlert>
 
       <NForm :model="form" label-placement="top" @submit.prevent="submitLogin">
         <NFormItem label="用户名">

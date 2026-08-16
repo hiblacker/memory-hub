@@ -4,16 +4,14 @@ import { computed, ref, watch } from 'vue'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 
 import {
-  ApiError,
   getSiyuanSettings,
   testSiyuanSettings,
   updateSiyuanSettings,
 } from '../api'
 import AppShell from '../components/AppShell.vue'
+import { showSuccessToast } from '../feedback'
 
 const queryClient = useQueryClient()
-const errorMessage = ref('')
-const successMessage = ref('')
 const form = ref({
   name: '',
   enabled: true,
@@ -85,14 +83,8 @@ const saveMutation = useMutation({
       allowedHosts: form.value.allowedHosts || null,
     }),
   onSuccess: async () => {
-    errorMessage.value = ''
-    successMessage.value = '配置已保存。'
+    showSuccessToast('配置已保存。')
     await queryClient.invalidateQueries({ queryKey: ['settings', 'siyuan'] })
-  },
-  onError: (error) => {
-    successMessage.value = ''
-    errorMessage.value =
-      error instanceof ApiError ? error.message : '保存失败。'
   },
 })
 
@@ -110,8 +102,7 @@ const testMutation = useMutation({
       allowedHosts: form.value.allowedHosts || null,
     }),
   onSuccess: async (data) => {
-    errorMessage.value = ''
-    successMessage.value = data.lastTestMessage || '连接测试成功。'
+    showSuccessToast(data.lastTestMessage || '连接测试成功。')
     form.value = {
       ...form.value,
       authHeader: data.authHeader,
@@ -120,10 +111,7 @@ const testMutation = useMutation({
     }
     await queryClient.invalidateQueries({ queryKey: ['settings', 'siyuan'] })
   },
-  onError: (error) => {
-    successMessage.value = ''
-    errorMessage.value =
-      error instanceof ApiError ? error.message : '连接测试失败。'
+  onError: () => {
     void queryClient.invalidateQueries({ queryKey: ['settings', 'siyuan'] })
   },
 })
@@ -132,8 +120,6 @@ const testMutation = useMutation({
 <template>
   <AppShell active-nav="settings" title="思源连接" context="归档目标与鉴权引用">
     <div class="page-stack">
-      <NAlert v-if="errorMessage" type="error" class="page-alert">{{ errorMessage }}</NAlert>
-      <NAlert v-if="successMessage" type="success" class="page-alert">{{ successMessage }}</NAlert>
       <NAlert type="info" class="page-alert">
         Token 不进入浏览器。请在仓库根目录
         <code>.env</code>
