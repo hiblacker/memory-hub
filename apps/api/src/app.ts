@@ -494,6 +494,46 @@ export function buildApp({
         },
       })
     }
+
+    // Optional draft settings from the form so unsaved notebook name/id are respected.
+    const draft =
+      request.body && typeof request.body === 'object' && Object.keys(request.body as object).length > 0
+        ? UpdateSiyuanSettingsSchema.safeParse(request.body)
+        : null
+    if (draft && !draft.success) {
+      return reply.status(400).send({
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: '请提供有效的思源配置后再测试连接。',
+        },
+      })
+    }
+
+    const testTarget: ArchiveTargetRecord = {
+      ...target,
+      baseUrl: draft?.success ? draft.data.baseUrl : target.baseUrl,
+      authHeader:
+        draft?.success && draft.data.authHeader !== undefined
+          ? draft.data.authHeader
+          : target.authHeader,
+      notebookId:
+        draft?.success && draft.data.notebookId !== undefined
+          ? draft.data.notebookId
+          : target.notebookId,
+      notebookName:
+        draft?.success && draft.data.notebookName !== undefined
+          ? draft.data.notebookName
+          : target.notebookName,
+      pathTemplate:
+        draft?.success && draft.data.pathTemplate !== undefined
+          ? draft.data.pathTemplate
+          : target.pathTemplate,
+      allowedHosts:
+        draft?.success && draft.data.allowedHosts !== undefined
+          ? draft.data.allowedHosts
+          : target.allowedHosts,
+    }
+
     if (!tokenConfigured()) {
       await authStore.updateArchiveTargetTestResult(target.id, {
         status: 'failed',
@@ -512,14 +552,26 @@ export function buildApp({
     }
 
     // Server-side immediate test: Token never leaves the API process / never reaches Web.
-    const result = await runSiyuanConnectionTest(target)
+    const result = await runSiyuanConnectionTest(testTarget)
     if (result.ok) {
-      // Persist working auth mode + selected notebook so archive jobs can run immediately.
+      // Persist working auth mode + resolved notebook; keep other draft fields if provided.
       await authStore.upsertDefaultArchiveTarget({
-        baseUrl: target.baseUrl,
-        notebookId: result.notebookId ?? target.notebookId,
-        notebookName: result.notebookName ?? target.notebookName,
-        authHeader: result.authHeader ?? target.authHeader,
+        baseUrl: testTarget.baseUrl,
+        notebookId: result.notebookId ?? testTarget.notebookId,
+        notebookName: result.notebookName ?? testTarget.notebookName,
+        authHeader: result.authHeader ?? testTarget.authHeader,
+        ...(draft?.success && draft.data.name !== undefined
+          ? { name: draft.data.name }
+          : {}),
+        ...(draft?.success && draft.data.enabled !== undefined
+          ? { enabled: draft.data.enabled }
+          : {}),
+        ...(draft?.success && draft.data.pathTemplate !== undefined
+          ? { pathTemplate: draft.data.pathTemplate }
+          : {}),
+        ...(draft?.success && draft.data.allowedHosts !== undefined
+          ? { allowedHosts: draft.data.allowedHosts }
+          : {}),
       })
       await authStore.updateArchiveTargetTestResult(target.id, {
         status: 'succeeded',

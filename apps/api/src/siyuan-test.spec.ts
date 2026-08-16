@@ -1,6 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { runSiyuanConnectionTest } from './siyuan-test.js'
+import {
+  resolveNotebookSelection,
+  runSiyuanConnectionTest,
+} from './siyuan-test.js'
 
 const baseTarget = {
   id: 'default-siyuan-target',
@@ -18,10 +21,54 @@ const baseTarget = {
   updatedAt: new Date(),
 }
 
+const notebooks = [
+  { id: 'nb-work', name: 'WorkSpace', closed: false },
+  { id: 'nb-hub', name: 'MemoryHub', closed: false },
+  { id: 'nb-memo', name: '备忘', closed: false },
+]
+
 afterEach(() => {
   vi.unstubAllGlobals()
   vi.unstubAllEnvs()
   vi.restoreAllMocks()
+})
+
+describe('resolveNotebookSelection', () => {
+  it('matches notebook by name before id', () => {
+    const result = resolveNotebookSelection(notebooks, {
+      notebookId: 'nb-work',
+      notebookName: 'MemoryHub',
+    })
+    expect(result).toEqual({
+      ok: true,
+      notebook: notebooks[1],
+      source: 'name',
+    })
+  })
+
+  it('does not fall back to first notebook when name is missing', () => {
+    const result = resolveNotebookSelection(notebooks, {
+      notebookId: null,
+      notebookName: '不存在',
+    })
+    expect(result.ok).toBe(false)
+    if (!result.ok) {
+      expect(result.message).toMatch(/未找到笔记本「不存在」/)
+      expect(result.message).toMatch(/MemoryHub/)
+    }
+  })
+
+  it('auto-selects first notebook only when both empty', () => {
+    const result = resolveNotebookSelection(notebooks, {
+      notebookId: null,
+      notebookName: null,
+    })
+    expect(result).toEqual({
+      ok: true,
+      notebook: notebooks[0],
+      source: 'auto',
+    })
+  })
 })
 
 describe('runSiyuanConnectionTest', () => {
@@ -59,6 +106,29 @@ describe('runSiyuanConnectionTest', () => {
     expect(result.notebookName).toBe('WorkSpace')
     expect(result.authHeader).toBe('Authorization')
     expect(result.message).toMatch(/连接成功/)
+  })
+
+  it('keeps requested notebook name instead of first notebook', async () => {
+    vi.stubEnv('SIYUAN_TOKEN', 'demo-token-1234')
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () =>
+        Response.json({
+          code: 0,
+          data: { notebooks },
+        }),
+      ),
+    )
+
+    const result = await runSiyuanConnectionTest({
+      ...baseTarget,
+      notebookId: 'nb-work',
+      notebookName: 'MemoryHub',
+    })
+    expect(result.ok).toBe(true)
+    expect(result.notebookId).toBe('nb-hub')
+    expect(result.notebookName).toBe('MemoryHub')
+    expect(result.message).toMatch(/按名称匹配/)
   })
 
   it('falls back from X-Auth-Token to Authorization after 401', async () => {

@@ -161,11 +161,13 @@ export async function updateSiyuanSettings(
   )
 }
 
-export async function testSiyuanSettings(): Promise<SiyuanSettings> {
+export async function testSiyuanSettings(
+  input?: UpdateSiyuanSettings,
+): Promise<SiyuanSettings> {
   return SiyuanSettingsSchema.parse(
     await request('/api/v1/settings/siyuan/test', {
       method: 'POST',
-      body: JSON.stringify({}),
+      body: JSON.stringify(input ?? {}),
     }),
   )
 }

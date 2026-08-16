@@ -4,6 +4,7 @@ import {
   SiyuanClient,
   SiyuanError,
   type SiyuanAuthMode,
+  type SiyuanNotebook,
 } from '@memory-hub/siyuan'
 import type { ArchiveTargetRecord } from '@memory-hub/database'
 
@@ -38,6 +39,59 @@ function modesToTry(authHeader: string): Array<{
       ? { header: 'X-Auth-Token', mode: 'x_auth_token' as const }
       : { header: 'Authorization', mode: 'authorization_token' as const }
   return [primary, secondary]
+}
+
+function availableNotebookSummary(notebooks: SiyuanNotebook[]): string {
+  if (notebooks.length === 0) return '（无）'
+  return notebooks.map((item) => item.name).join('、')
+}
+
+/**
+ * Resolve notebook preference without silently overwriting user intent.
+ * Priority:
+ * 1) exact notebookName match when name is provided
+ * 2) notebookId match when id is provided
+ * 3) first notebook only when neither name nor id is configured
+ */
+export function resolveNotebookSelection(
+  notebooks: SiyuanNotebook[],
+  target: Pick<ArchiveTargetRecord, 'notebookId' | 'notebookName'>,
+):
+  | { ok: true; notebook: SiyuanNotebook; source: 'name' | 'id' | 'auto' }
+  | { ok: false; message: string } {
+  const wantedName = target.notebookName?.trim() || ''
+  const wantedId = target.notebookId?.trim() || ''
+
+  if (wantedName) {
+    const byName = notebooks.find((item) => item.name === wantedName)
+    if (byName) {
+      return { ok: true, notebook: byName, source: 'name' }
+    }
+    return {
+      ok: false,
+      message: `连接成功，但未找到笔记本「${wantedName}」。可用笔记本：${availableNotebookSummary(notebooks)}。请先在思源中创建，或改成已有名称后再测试。`,
+    }
+  }
+
+  if (wantedId) {
+    const byId = notebooks.find((item) => item.id === wantedId)
+    if (byId) {
+      return { ok: true, notebook: byId, source: 'id' }
+    }
+    return {
+      ok: false,
+      message: `连接成功，但笔记本 ID 不存在：${wantedId}。可用笔记本：${availableNotebookSummary(notebooks)}。`,
+    }
+  }
+
+  const first = notebooks[0]
+  if (!first) {
+    return {
+      ok: false,
+      message: '连接成功，但未发现可用笔记本。请先在思源中创建笔记本。',
+    }
+  }
+  return { ok: true, notebook: first, source: 'auto' }
 }
 
 export async function runSiyuanConnectionTest(target: ArchiveTargetRecord): Promise<{
@@ -75,32 +129,37 @@ export async function runSiyuanConnectionTest(target: ArchiveTargetRecord): Prom
         timeoutMs: 12_000,
       })
       const notebooks = await client.listNotebooks()
-      const selected =
-        notebooks.find((item) => item.id === target.notebookId) ?? notebooks[0]
-      if (!selected) {
+      const selected = resolveNotebookSelection(notebooks, target)
+      if (!selected.ok) {
         return {
           ok: false,
-          message: '连接成功，但未发现可用笔记本。请先在思源中创建笔记本。',
-          notebookCount: 0,
+          message: selected.message,
+          notebookCount: notebooks.length,
           authHeader: attempt.header,
         }
       }
+
       const modeLabel =
         attempt.mode === 'authorization_token'
           ? 'Authorization: Token'
           : 'X-Auth-Token'
+      const sourceLabel =
+        selected.source === 'name'
+          ? '按名称匹配'
+          : selected.source === 'id'
+            ? '按 ID 匹配'
+            : '自动选择首个'
       return {
         ok: true,
-        message: `连接成功（${modeLabel}），共 ${notebooks.length} 个笔记本。已选择「${selected.name}」。`,
-        notebookId: selected.id,
-        notebookName: selected.name,
+        message: `连接成功（${modeLabel}，${sourceLabel}），共 ${notebooks.length} 个笔记本。当前笔记本「${selected.notebook.name}」。`,
+        notebookId: selected.notebook.id,
+        notebookName: selected.notebook.name,
         notebookCount: notebooks.length,
         authHeader: attempt.header,
       }
     } catch (error) {
       if (error instanceof SiyuanError) {
         errors.push(`${attempt.header}: ${error.message}`)
-        // try fallback on unauthorized only
         if (error.code !== 'SIYUAN_UNAUTHORIZED') {
           return {
             ok: false,

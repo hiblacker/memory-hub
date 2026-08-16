@@ -313,7 +313,11 @@ describe('MemoryHub API', () => {
         method: 'POST',
         url: '/api/v1/settings/siyuan/test',
         cookies: { memoryhub_session: cookie },
-        payload: {},
+        payload: {
+          baseUrl: 'http://192.168.1.10:1166',
+          notebookId: null,
+          notebookName: null,
+        },
       })
       expect(response.statusCode).toBe(200)
       expect(response.json()).toMatchObject({

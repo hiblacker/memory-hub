@@ -97,7 +97,18 @@ const saveMutation = useMutation({
 })
 
 const testMutation = useMutation({
-  mutationFn: testSiyuanSettings,
+  mutationFn: () =>
+    testSiyuanSettings({
+      name: form.value.name,
+      enabled: form.value.enabled,
+      baseUrl: form.value.baseUrl,
+      authHeader: form.value.authHeader,
+      // Prefer name matching: clear stale id when user changed notebook name.
+      notebookId: form.value.notebookId || null,
+      notebookName: form.value.notebookName || null,
+      pathTemplate: form.value.pathTemplate,
+      allowedHosts: form.value.allowedHosts || null,
+    }),
   onSuccess: async (data) => {
     errorMessage.value = ''
     successMessage.value = data.lastTestMessage || '连接测试成功。'
@@ -130,7 +141,7 @@ const testMutation = useMutation({
         <code>SIYUAN_TOKEN</code>
         或
         <code>SIYUAN_TOKEN_FILE</code>
-        ，然后重启 API / Worker。思源 3.x 默认使用
+        ，然后重启 API / Worker。填写「笔记本名称」后测试连接会优先按名称匹配，不会再静默改回首个笔记本。思源 3.x 默认使用
         <code>Authorization: Token &lt;token&gt;</code>
         。
       </NAlert>
@@ -165,10 +176,14 @@ const testMutation = useMutation({
             <NInput v-model:value="form.authHeader" placeholder="Authorization（思源 3.x 常用）或 X-Auth-Token" />
           </NFormItem>
           <NFormItem label="笔记本 ID">
-            <NInput v-model:value="form.notebookId" placeholder="连接测试成功后可自动回填" />
+            <NInput v-model:value="form.notebookId" placeholder="可留空；按名称匹配成功后自动回填" />
           </NFormItem>
           <NFormItem label="笔记本名称">
-            <NInput v-model:value="form.notebookName" />
+            <NInput
+              v-model:value="form.notebookName"
+              placeholder="例如 MemoryHub（优先按名称匹配，需在思源中已存在）"
+              @update:value="form.notebookId = ''"
+            />
           </NFormItem>
           <NFormItem label="路径模板">
             <NInput v-model:value="form.pathTemplate" />
