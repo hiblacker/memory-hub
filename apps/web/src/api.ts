@@ -32,13 +32,16 @@ export class ApiError extends Error {
 }
 
 async function request(path: string, init?: RequestInit): Promise<unknown> {
+  const headers = new Headers(init?.headers)
+  // Fastify rejects empty bodies when Content-Type is application/json.
+  if (init?.body !== undefined && !headers.has('Content-Type')) {
+    headers.set('Content-Type', 'application/json')
+  }
+
   const response = await fetch(`${apiBaseUrl}${path}`, {
     ...init,
     credentials: 'include',
-    headers: {
-      'Content-Type': 'application/json',
-      ...init?.headers,
-    },
+    headers,
   })
 
   if (!response.ok) {
@@ -70,7 +73,10 @@ export async function getCurrentUser(): Promise<User> {
 }
 
 export async function logout(): Promise<void> {
-  await request('/api/v1/auth/logout', { method: 'POST' })
+  await request('/api/v1/auth/logout', {
+    method: 'POST',
+    body: JSON.stringify({}),
+  })
 }
 
 export async function getHomeSummary(): Promise<HomeSummary> {

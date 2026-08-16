@@ -156,6 +156,23 @@ export function buildApp({
   sessionTtlMs = 7 * 24 * 60 * 60 * 1000,
 }: BuildAppOptions) {
   const app = Fastify({ logger: false })
+  // Browsers often POST logout with application/json and an empty body.
+  app.addContentTypeParser(
+    'application/json',
+    { parseAs: 'string' },
+    (request, body, done) => {
+      const text = typeof body === 'string' ? body : ''
+      if (!text) {
+        done(null, {})
+        return
+      }
+      try {
+        done(null, JSON.parse(text) as unknown)
+      } catch (error) {
+        done(error as Error, undefined)
+      }
+    },
+  )
 
   void app.register(cookie)
   void app.register(cors, {

@@ -90,6 +90,23 @@ describe('MemoryHub API', () => {
       cookies: { memoryhub_session: cookie?.value ?? '' },
     })
     expect(logout.statusCode).toBe(204)
+
+    const loginAgain = await app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/login',
+      payload: { username: 'admin', password: 'correct-password' },
+    })
+    const cookieAgain = loginAgain.cookies.find(
+      (item) => item.name === 'memoryhub_session',
+    )
+    const emptyBodyLogout = await app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/logout',
+      headers: { 'content-type': 'application/json' },
+      payload: '',
+      cookies: { memoryhub_session: cookieAgain?.value ?? '' },
+    })
+    expect(emptyBodyLogout.statusCode).toBe(204)
   })
 
   it('未登录时拒绝首页请求', async () => {
