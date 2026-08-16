@@ -1,3 +1,10 @@
+import { loadLocalEnvFiles } from './load-env.js'
+
+const loadedEnv = loadLocalEnvFiles()
+if (loadedEnv) {
+  console.log(`[memory-hub-api] loaded env file: ${loadedEnv}`)
+}
+
 import { createDatabase } from '@memory-hub/database'
 
 import { buildApp } from './app.js'
@@ -27,3 +34,8 @@ app.addHook('onClose', async () => {
 })
 
 await app.listen({ host: '0.0.0.0', port: config.port })
+console.log(
+  `[memory-hub-api] listening on ${config.port}; siyuan token configured=${Boolean(
+    process.env.SIYUAN_TOKEN?.trim() || process.env.SIYUAN_TOKEN_FILE?.trim(),
+  )}`,
+)

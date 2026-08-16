@@ -46,7 +46,9 @@ pnpm dev
 密码：memoryhub-dev
 ```
 
-Worker 负责消费归档 outbox 并调用思源。开发环境可设置：
+API 与 Worker 启动时会自动加载仓库根目录或当前目录的 `.env`（已存在的系统环境变量优先，不会覆盖）。
+
+Worker 负责消费归档 outbox 并调用思源。开发环境可在 `.env` 中设置：
 
 ```text
 SIYUAN_TOKEN=你的思源Token
