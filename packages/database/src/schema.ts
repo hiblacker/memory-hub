@@ -43,6 +43,10 @@ export const memoryCandidates = pgTable('memory_candidates', {
   renderStyle: text('render_style').notNull().default('xhs_note'),
   emojiEnabled: boolean('emoji_enabled').notNull().default(true),
   rejectionReason: text('rejection_reason'),
+  contentHash: text('content_hash'),
+  canonicalKey: text('canonical_key'),
+  sourceEventId: text('source_event_id'),
+  duplicateOfId: text('duplicate_of_id'),
   currentVersionId: text('current_version_id'),
   captureTime: timestamp('capture_time', { withTimezone: true }).notNull(),
   createdAt: timestamp('created_at', { withTimezone: true })
@@ -170,3 +174,62 @@ export const outboxMessages = pgTable('outbox_messages', {
   publishAttempts: integer('publish_attempts').notNull().default(0),
   lastError: text('last_error'),
 })
+
+export const sourceConnectors = pgTable('source_connectors', {
+  id: text('id').primaryKey(),
+  name: text('name').notNull(),
+  type: text('type').notNull(),
+  apiKeyHash: text('api_key_hash').notNull().unique(),
+  keyPrefix: text('key_prefix').notNull(),
+  enabled: boolean('enabled').notNull().default(true),
+  lastUsedAt: timestamp('last_used_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+})
+
+export const sourceEvents = pgTable(
+  'source_events',
+  {
+    id: text('id').primaryKey(),
+    connectorId: text('connector_id')
+      .notNull()
+      .references(() => sourceConnectors.id, { onDelete: 'restrict' }),
+    schemaVersion: integer('schema_version').notNull(),
+    source: text('source').notNull(),
+    eventType: text('event_type').notNull(),
+    externalConversationId: text('external_conversation_id').notNull(),
+    externalEventId: text('external_event_id').notNull(),
+    occurredAt: timestamp('occurred_at', { withTimezone: true }).notNull(),
+    projectName: text('project_name'),
+    projectRepository: text('project_repository'),
+    projectBranch: text('project_branch'),
+    title: text('title').notNull(),
+    body: text('body').notNull(),
+    contentHash: text('content_hash').notNull(),
+    canonicalKey: text('canonical_key').notNull(),
+    metadata: jsonb('metadata'),
+    status: text('status').notNull(),
+    candidateId: text('candidate_id'),
+    errorSummary: text('error_summary'),
+    idempotencyKey: text('idempotency_key'),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    processedAt: timestamp('processed_at', { withTimezone: true }),
+  },
+  (table) => ({
+    naturalKey: uniqueIndex('source_events_natural_key_uidx').on(
+      table.connectorId,
+      table.externalConversationId,
+      table.externalEventId,
+    ),
+    idempotencyUnique: uniqueIndex('source_events_idempotency_uidx').on(
+      table.connectorId,
+      table.idempotencyKey,
+    ),
+  }),
+)

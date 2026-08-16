@@ -184,3 +184,78 @@ export type DeliveryStatus = z.infer<typeof DeliveryStatusSchema>
 export type ArchiveDelivery = z.infer<typeof ArchiveDeliverySchema>
 export type SiyuanSettings = z.infer<typeof SiyuanSettingsSchema>
 export type UpdateSiyuanSettings = z.infer<typeof UpdateSiyuanSettingsSchema>
+
+export const SourceTypeSchema = z.enum([
+  'claude_code',
+  'chatgpt_export',
+  'chatgpt_extension',
+  'rest',
+  'manual',
+])
+
+export const SourceEventSchema = z.object({
+  schemaVersion: z.literal(1),
+  source: SourceTypeSchema,
+  eventType: z.string().trim().min(1).max(80),
+  externalConversationId: z.string().trim().min(1).max(200),
+  externalEventId: z.string().trim().min(1).max(200),
+  occurredAt: z.string().datetime(),
+  project: z
+    .object({
+      name: z.string().trim().min(1).max(120).optional(),
+      repository: z.string().trim().max(300).optional(),
+      branch: z.string().trim().max(120).optional(),
+    })
+    .optional(),
+  content: z.object({
+    title: z.string().trim().min(1).max(200),
+    text: z.string().trim().min(1).max(50_000),
+  }),
+  metadata: z.record(z.unknown()).default({}),
+})
+
+export const IngestEventResponseSchema = z.object({
+  accepted: z.boolean(),
+  duplicate: z.boolean(),
+  eventId: z.string(),
+  status: z.enum(['received', 'duplicate', 'processed', 'failed']),
+  candidateId: z.string().nullable(),
+})
+
+export const ConnectorTypeSchema = z.enum([
+  'claude_code',
+  'chatgpt_export',
+  'chatgpt_extension',
+  'rest',
+])
+
+export const ConnectorSummarySchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  type: ConnectorTypeSchema,
+  enabled: z.boolean(),
+  keyPrefix: z.string(),
+  lastUsedAt: z.string().datetime().nullable(),
+  createdAt: z.string().datetime(),
+})
+
+export const CreateConnectorRequestSchema = z.object({
+  name: z.string().trim().min(1).max(80),
+  type: ConnectorTypeSchema,
+})
+
+export const CreateConnectorResponseSchema = z.object({
+  connector: ConnectorSummarySchema,
+  apiKey: z.string(),
+})
+
+export const ConnectorListSchema = z.object({
+  items: z.array(ConnectorSummarySchema),
+})
+
+export type SourceEvent = z.infer<typeof SourceEventSchema>
+export type IngestEventResponse = z.infer<typeof IngestEventResponseSchema>
+export type ConnectorSummary = z.infer<typeof ConnectorSummarySchema>
+export type CreateConnectorRequest = z.infer<typeof CreateConnectorRequestSchema>
+export type ConnectorType = z.infer<typeof ConnectorTypeSchema>
+export type SourceType = z.infer<typeof SourceTypeSchema>

@@ -3,6 +3,9 @@ import {
   ArchiveDeliverySchema,
   CandidateListSchema,
   SiyuanSettingsSchema,
+  ConnectorListSchema,
+  CreateConnectorResponseSchema,
+  ConnectorSummarySchema,
   CandidateSummarySchema,
   HomeSummarySchema,
   LoginResponseSchema,
@@ -16,6 +19,8 @@ import {
   type SiyuanSettings,
   type UpdateSiyuanSettings,
   type UpdateCandidateRequest,
+  type ConnectorSummary,
+  type CreateConnectorRequest,
   type User,
 } from '@memory-hub/contracts'
 
@@ -184,4 +189,30 @@ export async function retryDelivery(deliveryId: string): Promise<ArchiveDelivery
 
 export async function listArchives(): Promise<CandidateList> {
   return CandidateListSchema.parse(await request('/api/v1/archives'))
+}
+export async function listConnectors(): Promise<ConnectorSummary[]> {
+  return ConnectorListSchema.parse(await request('/api/v1/connectors')).items
+}
+
+export async function createConnector(
+  input: CreateConnectorRequest,
+): Promise<{ connector: ConnectorSummary; apiKey: string }> {
+  return CreateConnectorResponseSchema.parse(
+    await request('/api/v1/connectors', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    }),
+  )
+}
+
+export async function setConnectorEnabled(
+  connectorId: string,
+  enabled: boolean,
+): Promise<ConnectorSummary> {
+  const path = enabled
+    ? `/api/v1/connectors/${connectorId}/enable`
+    : `/api/v1/connectors/${connectorId}/disable`
+  return ConnectorSummarySchema.parse(
+    await request(path, { method: 'POST', body: JSON.stringify({}) }),
+  )
 }

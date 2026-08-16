@@ -24,7 +24,7 @@ import { getHomeSummary } from '../api'
 import { homeQueryKey, useLogoutMutation } from '../queries'
 
 defineProps<{
-  activeNav: 'inbox' | 'capture' | 'archives' | 'settings'
+  activeNav: 'inbox' | 'capture' | 'archives' | 'settings' | 'sources'
   title: string
   context: string
 }>()
@@ -104,10 +104,14 @@ async function signOut() {
             <ShieldCheck :size="17" aria-hidden="true" />
             <span>自动归档规则</span>
           </div>
-          <div class="nav-item disabled" title="后续版本开放">
+                    <RouterLink
+            class="nav-item"
+            :class="{ active: activeNav === 'sources' }"
+            to="/settings/connectors">
+          >
             <FileInput :size="17" aria-hidden="true" />
-            <span>来源与导入</span>
-          </div>
+            <span>来源与连接器</span>
+          </RouterLink>
           <div class="nav-item disabled" title="后续版本开放">
             <Bot :size="17" aria-hidden="true" />
             <span>系统设置</span>

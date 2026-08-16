@@ -1,4 +1,4 @@
-import { createDatabase, OUTBOX_TOPIC_ARCHIVE_DELIVERY, OUTBOX_TOPIC_SIYUAN_TEST, type AuthStore } from '@memory-hub/database'
+import { createDatabase, OUTBOX_TOPIC_ARCHIVE_DELIVERY, OUTBOX_TOPIC_SIYUAN_TEST, OUTBOX_TOPIC_PROCESS_SOURCE_EVENT, type AuthStore } from '@memory-hub/database'
 import { assertArchivable, executeSiyuanArchive } from '@memory-hub/core'
 import {
   loadSiyuanToken,
@@ -10,6 +10,7 @@ import PgBoss from 'pg-boss'
 
 const QUEUE_ARCHIVE = 'archive-delivery'
 const QUEUE_SIYUAN_TEST = 'siyuan-test'
+const QUEUE_SOURCE_EVENT = 'source-event-process'
 const MAX_ATTEMPTS = 5
 
 function loadDatabaseUrl(): string {
@@ -198,6 +199,13 @@ async function publishOutbox(
           retryLimit: 0,
           expireInSeconds: 60 * 30,
         })
+      } else if (message.topic === OUTBOX_TOPIC_PROCESS_SOURCE_EVENT) {
+        const eventId = String(message.payload.eventId ?? '')
+        if (!eventId) throw new Error('outbox payload missing eventId')
+        await boss.send(QUEUE_SOURCE_EVENT, { eventId }, {
+          retryLimit: 3,
+          expireInSeconds: 60 * 30,
+        })
       } else if (message.topic === OUTBOX_TOPIC_SIYUAN_TEST) {
         const targetId = String(message.payload.targetId ?? '')
         if (!targetId) throw new Error('outbox payload missing targetId')
@@ -217,6 +225,20 @@ async function publishOutbox(
   }
 }
 
+export async function processSourceEventJob(
+  store: AuthStore,
+  eventId: string,
+): Promise<void> {
+  const result = await store.processSourceEvent(eventId)
+  if (!result) {
+    console.warn(`[worker] source event not found: ${eventId}`)
+    return
+  }
+  console.info(
+    `[worker] source event ${eventId} -> ${result.status} candidate=${result.candidateId ?? '-'}`,
+  )
+}
+
 export async function startWorker() {
   const databaseUrl = loadDatabaseUrl()
   const store = createDatabase(databaseUrl)
@@ -232,12 +254,21 @@ export async function startWorker() {
   await boss.start()
   await boss.createQueue(QUEUE_ARCHIVE)
   await boss.createQueue(QUEUE_SIYUAN_TEST)
+  await boss.createQueue(QUEUE_SOURCE_EVENT)
 
   await boss.work(QUEUE_ARCHIVE, async (jobs) => {
     for (const job of jobs) {
       const deliveryId = String((job.data as { deliveryId?: string }).deliveryId ?? '')
       if (!deliveryId) continue
       await processArchiveDelivery(store, deliveryId)
+    }
+  })
+
+  await boss.work(QUEUE_SOURCE_EVENT, async (jobs) => {
+    for (const job of jobs) {
+      const eventId = String((job.data as { eventId?: string }).eventId ?? '')
+      if (!eventId) continue
+      await processSourceEventJob(store, eventId)
     }
   })
 

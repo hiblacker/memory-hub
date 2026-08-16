@@ -7,6 +7,7 @@ import { queryClient } from './query-client'
 import CaptureView from './views/CaptureView.vue'
 import SettingsView from './views/SettingsView.vue'
 import ArchivesView from './views/ArchivesView.vue'
+import ConnectorsView from './views/ConnectorsView.vue'
 import CandidateDetailView from './views/CandidateDetailView.vue'
 import InboxView from './views/InboxView.vue'
 import LoginView from './views/LoginView.vue'
@@ -42,6 +43,12 @@ export function createAppRouter(
         path: '/archives',
         name: 'archives',
         component: ArchivesView,
+        meta: { requiresAuth: true },
+      },
+      {
+        path: '/settings/connectors',
+        name: 'settings-connectors',
+        component: ConnectorsView,
         meta: { requiresAuth: true },
       },
       {

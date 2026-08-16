@@ -208,6 +208,9 @@ importers:
 
   packages/database:
     dependencies:
+      '@memory-hub/core':
+        specifier: workspace:*
+        version: link:../core
       drizzle-orm:
         specifier: ^0.38.4
         version: 0.38.4(pg@8.23.0)(postgres@3.4.9)

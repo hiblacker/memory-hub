@@ -194,3 +194,6 @@ export async function executeSiyuanArchive(
     throw error
   }
 }
+
+export * from './ingestion.js'
+

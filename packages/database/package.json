@@ -13,7 +13,7 @@
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "lint": "eslint src --max-warnings 0"
   },
-  "dependencies": {
+  "dependencies": { "@memory-hub/core": "workspace:*",
     "drizzle-orm": "^0.38.4",
     "postgres": "^3.4.5"
   },

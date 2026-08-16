@@ -14,6 +14,15 @@ import {
   users,
 } from './schema.js'
 import { DEVELOPMENT_DEMO_MEMORIES } from './demo-memories.js'
+import {
+  applySourceEventsMigration,
+  createSourceEventOperations,
+  type ConnectorRecord,
+  type ConnectorType,
+  type IngestSourceEventInput,
+  type SourceEventRecord,
+} from './source-events.js'
+import { computeCanonicalKey, computeContentHash } from '@memory-hub/core'
 
 export interface DatabaseUser {
   id: string
@@ -269,6 +278,21 @@ export interface AuthStore {
   }): Promise<void>
   seedDevelopmentMemories(): Promise<number>
   enqueueSiyuanTest(targetId: string): Promise<void>
+  listConnectors(): Promise<ConnectorRecord[]>
+  createConnector(input: {
+    name: string
+    type: ConnectorType
+  }): Promise<{ connector: ConnectorRecord; apiKey: string }>
+  setConnectorEnabled(
+    id: string,
+    enabled: boolean,
+  ): Promise<ConnectorRecord | undefined>
+  findConnectorByApiKey(apiKey: string): Promise<ConnectorRecord | undefined>
+  ingestSourceEvent(
+    input: IngestSourceEventInput,
+  ): Promise<{ event: SourceEventRecord; duplicate: boolean }>
+  getSourceEvent(id: string): Promise<SourceEventRecord | undefined>
+  processSourceEvent(eventId: string): Promise<SourceEventRecord | undefined>
 }
 
 export const schema = {
@@ -285,6 +309,13 @@ export const schema = {
 const DEFAULT_TARGET_ID = 'default-siyuan-target'
 export const OUTBOX_TOPIC_ARCHIVE_DELIVERY = 'archive.delivery'
 export const OUTBOX_TOPIC_SIYUAN_TEST = 'siyuan.test'
+export { OUTBOX_TOPIC_PROCESS_SOURCE_EVENT } from './source-events.js'
+export type {
+  ConnectorRecord,
+  ConnectorType,
+  IngestSourceEventInput,
+  SourceEventRecord,
+} from './source-events.js'
 
 function contentHash(title: string, body: string): string {
   return createHash('sha256').update(title + String.fromCharCode(10) + body).digest('hex')
@@ -443,6 +474,7 @@ export function createDatabase(databaseUrl: string): AuthStore & {
 } {
   const client = postgres(databaseUrl, { max: 10 })
   const db = drizzle(client)
+  const sourceOps = createSourceEventOperations(db, client)
 
   async function writeAuditInternal(input: {
     actorType: string
@@ -705,6 +737,8 @@ export function createDatabase(databaseUrl: string): AuthStore & {
             ON archive_deliveries(memory_version_id, target_id);
         `)
       }
+
+      await applySourceEventsMigration(client)
     },
 
     async findUserByUsername(username) {
@@ -1249,6 +1283,13 @@ export function createDatabase(databaseUrl: string): AuthStore & {
       })
     },
 
+    listConnectors: () => sourceOps.listConnectors(),
+    createConnector: (input) => sourceOps.createConnector(input),
+    setConnectorEnabled: (id, enabled) => sourceOps.setConnectorEnabled(id, enabled),
+    findConnectorByApiKey: (apiKey) => sourceOps.findConnectorByApiKey(apiKey),
+    ingestSourceEvent: (input) => sourceOps.ingestSourceEvent(input),
+    getSourceEvent: (id) => sourceOps.getSourceEvent(id),
+    processSourceEvent: (eventId) => sourceOps.processSourceEvent(eventId),
     async seedDevelopmentMemories() {
       let seeded = 0
       for (const item of DEVELOPMENT_DEMO_MEMORIES) {
@@ -1623,6 +1664,29 @@ export function createMemoryStore(): AuthStore {
       })
       return updated
     },
+    async listConnectors() { return [] },
+    async createConnector(input) {
+      const now = new Date()
+      const connector: ConnectorRecord = {
+        id: randomUUID(),
+        name: input.name,
+        type: input.type,
+        apiKeyHash: 'hash',
+        keyPrefix: 'mh_test',
+        enabled: true,
+        lastUsedAt: null,
+        createdAt: now,
+        updatedAt: now,
+      }
+      return { connector, apiKey: 'mh_test_key_for_memory_store' }
+    },
+    async setConnectorEnabled() { return undefined },
+    async findConnectorByApiKey() { return undefined },
+    async ingestSourceEvent() {
+      throw new Error('in-memory ingest not implemented')
+    },
+    async getSourceEvent() { return undefined },
+    async processSourceEvent() { return undefined },
     async writeAudit() {},
     async enqueueSiyuanTest(targetId) {
       outbox.push({

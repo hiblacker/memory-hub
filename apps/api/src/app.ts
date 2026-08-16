@@ -31,6 +31,7 @@ import {
   SESSION_COOKIE_NAME,
   verifyPassword,
 } from './auth.js'
+import { registerIngestionRoutes } from './ingestion-routes.js'
 
 interface BuildAppOptions {
   authStore: AuthStore
@@ -574,6 +575,7 @@ export function buildApp({
     return reply.send(CandidateListSchema.parse({ items }))
   })
 
+  registerIngestionRoutes(app, authStore)
   return app
 }
 
