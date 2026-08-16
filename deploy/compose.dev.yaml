@@ -1,12 +1,16 @@
+name: memory-hub
+
 services:
   postgres:
     image: postgres:16.9-alpine
+    container_name: memory-hub-postgres-dev
     restart: unless-stopped
     environment:
       POSTGRES_DB: memoryhub
       POSTGRES_USER: memoryhub
       POSTGRES_PASSWORD: memoryhub
     ports:
+      # Dedicated host port for MemoryHub; avoids clashing with other local Postgres.
       - '5432:5432'
     volumes:
       - memoryhub-postgres-dev:/var/lib/postgresql/data
@@ -15,6 +19,12 @@ services:
       interval: 5s
       timeout: 3s
       retries: 20
+    labels:
+      - com.memory-hub.service=postgres
+      - com.memory-hub.env=dev
 
 volumes:
   memoryhub-postgres-dev:
+    # Explicit project-scoped volume name. Never rely on the folder name "deploy"
+    # as the Compose project, or other repos under deploy/ will collide.
+    name: memory-hub_postgres_data
