@@ -17,6 +17,11 @@ import {
   sourceEvents,
 } from './schema.js'
 
+
+function asTimestamptz(value: Date | string): string {
+  return value instanceof Date ? value.toISOString() : value
+}
+
 export const OUTBOX_TOPIC_PROCESS_SOURCE_EVENT = 'source.event.process'
 
 export type ConnectorType =
@@ -319,11 +324,11 @@ export function createSourceEventOperations(
             ) VALUES (
               ${id}, ${input.connectorId}, ${input.schemaVersion}, ${input.source},
               ${input.eventType}, ${input.externalConversationId}, ${input.externalEventId},
-              ${input.occurredAt}, ${input.projectName ?? null},
+              ${asTimestamptz(input.occurredAt)}, ${input.projectName ?? null},
               ${input.projectRepository ?? null}, ${input.projectBranch ?? null},
               ${input.title}, ${input.body}, ${contentHash}, ${canonicalKey},
-              ${tx.json((input.metadata ?? {}) as never)}, 'received',
-              ${input.idempotencyKey ?? null}, ${now}
+              ${JSON.stringify((input.metadata ?? {}) as never)}::jsonb, 'received',
+              ${input.idempotencyKey ?? null}, ${asTimestamptz(now)}
             )
           `
           await tx`
@@ -331,8 +336,8 @@ export function createSourceEventOperations(
             VALUES (
               ${randomUUID()},
               ${OUTBOX_TOPIC_PROCESS_SOURCE_EVENT},
-              ${tx.json({ eventId: id })},
-              ${now},
+              ${JSON.stringify({ eventId: id })}::jsonb,
+              ${asTimestamptz(now)},
               0
             )
           `
@@ -413,7 +418,7 @@ export function createSourceEventOperations(
               UPDATE source_events
               SET status = 'duplicate',
                   candidate_id = ${sameHash[0]!.id},
-                  processed_at = ${now},
+                  processed_at = ${asTimestamptz(now)},
                   error_summary = NULL
               WHERE id = ${eventId}
             `
@@ -423,7 +428,7 @@ export function createSourceEventOperations(
               ) VALUES (
                 ${randomUUID()}, 'worker', 'source_event.duplicate', 'source_event',
                 ${eventId}, ${'精确内容重复，复用已有候选'},
-                ${tx.json({ candidateId: sameHash[0]!.id })}, ${now}
+                ${JSON.stringify({ candidateId: sameHash[0]!.id })}::jsonb, ${asTimestamptz(now)}
               )
             `
           })
@@ -462,7 +467,7 @@ export function createSourceEventOperations(
               ${candidateId}, ${status}, ${event.title}, ${event.body},
               ${memoryType}, ${event.source}, ${event.projectName},
               ${sensitivity.sensitivity}, ${sensitivity.blockExternal ? 40 : 80},
-              'xhs_note', true, ${event.occurredAt}, ${now}, ${now},
+              'xhs_note', true, ${asTimestamptz(event.occurredAt)}, ${asTimestamptz(now)}, ${asTimestamptz(now)},
               ${event.contentHash}, ${event.canonicalKey}, ${eventId},
               ${status === 'conflict' ? sameKey[0]!.id : null}
             )
@@ -471,7 +476,7 @@ export function createSourceEventOperations(
             UPDATE source_events
             SET status = 'processed',
                 candidate_id = ${candidateId},
-                processed_at = ${now},
+                processed_at = ${asTimestamptz(now)},
                 error_summary = NULL
             WHERE id = ${eventId}
           `
@@ -481,7 +486,7 @@ export function createSourceEventOperations(
             ) VALUES (
               ${randomUUID()}, 'worker', 'source_event.processed', 'source_event',
               ${eventId}, ${status === 'conflict' ? '处理完成（冲突）' : '处理完成'},
-              ${tx.json({ candidateId, status, memoryType })}, ${now}
+              ${JSON.stringify({ candidateId, status, memoryType })}::jsonb, ${asTimestamptz(now)}
             )
           `
         })

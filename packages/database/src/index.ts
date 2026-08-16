@@ -321,6 +321,12 @@ function contentHash(title: string, body: string): string {
   return createHash('sha256').update(title + String.fromCharCode(10) + body).digest('hex')
 }
 
+/** postgres.js prepared binds can fail on Date; always send ISO timestamps. */
+function asTimestamptz(value: Date | string): string {
+  return value instanceof Date ? value.toISOString() : value
+}
+
+
 function mapCandidate(row: {
   id: string
   status: string
@@ -929,7 +935,7 @@ export function createDatabase(databaseUrl: string): AuthStore & {
             ${current.body}, ${current.memoryType}, ${current.source},
             ${current.project}, ${current.sensitivity}, ${current.confidence},
             ${current.renderStyle}, ${current.emojiEnabled}, ${hash},
-            ${current.captureTime}, ${now}
+            ${asTimestamptz(current.captureTime)}, ${asTimestamptz(now)}
           )
         `
         await tx`
@@ -938,7 +944,7 @@ export function createDatabase(databaseUrl: string): AuthStore & {
             created_at, updated_at
           ) VALUES (
             ${deliveryId}, ${current.id}, ${versionId}, ${target.id}, 'queued', 0,
-            ${now}, ${now}
+            ${asTimestamptz(now)}, ${asTimestamptz(now)}
           )
         `
         await tx`
@@ -946,7 +952,7 @@ export function createDatabase(databaseUrl: string): AuthStore & {
           SET status = 'queued',
               current_version_id = ${versionId},
               rejection_reason = NULL,
-              updated_at = ${now}
+              updated_at = ${asTimestamptz(now)}
           WHERE id = ${current.id}
         `
         await tx`
@@ -955,8 +961,8 @@ export function createDatabase(databaseUrl: string): AuthStore & {
           ) VALUES (
             ${randomUUID()}, 'user', 'candidate.approve', 'memory_candidate',
             ${current.id}, ${'批准候选并进入归档队列'},
-            ${tx.json({ deliveryId, versionId, targetId: target.id })},
-            ${now}
+            ${JSON.stringify({ deliveryId, versionId, targetId: target.id })}::jsonb,
+            ${asTimestamptz(now)}
           )
         `
         await tx`
@@ -964,8 +970,8 @@ export function createDatabase(databaseUrl: string): AuthStore & {
           VALUES (
             ${randomUUID()},
             ${OUTBOX_TOPIC_ARCHIVE_DELIVERY},
-            ${tx.json({ deliveryId })},
-            ${now},
+            ${JSON.stringify({ deliveryId })}::jsonb,
+            ${asTimestamptz(now)},
             0
           )
         `
@@ -1164,8 +1170,8 @@ export function createDatabase(databaseUrl: string): AuthStore & {
               block_id = ${input.blockId},
               path = ${input.path},
               request_fingerprint = ${input.requestFingerprint},
-              succeeded_at = ${now},
-              updated_at = ${now},
+              succeeded_at = ${asTimestamptz(now)},
+              updated_at = ${asTimestamptz(now)},
               last_error_code = NULL,
               last_error_message = NULL
           WHERE id = ${id}
@@ -1175,7 +1181,7 @@ export function createDatabase(databaseUrl: string): AuthStore & {
         if (candidateId) {
           await tx`
             UPDATE memory_candidates
-            SET status = 'archived', updated_at = ${now}
+            SET status = 'archived', updated_at = ${asTimestamptz(now)}
             WHERE id = ${candidateId}
           `
           await tx`
@@ -1184,8 +1190,8 @@ export function createDatabase(databaseUrl: string): AuthStore & {
             ) VALUES (
               ${randomUUID()}, 'worker', 'delivery.succeeded', 'archive_delivery',
               ${id}, ${'思源归档成功'},
-              ${tx.json({ documentId: input.documentId, blockId: input.blockId })},
-              ${now}
+              ${JSON.stringify({ documentId: input.documentId, blockId: input.blockId })}::jsonb,
+              ${asTimestamptz(now)}
             )
           `
         }
@@ -1241,7 +1247,7 @@ export function createDatabase(databaseUrl: string): AuthStore & {
       await client.begin(async (tx) => {
         await tx`
           UPDATE archive_deliveries
-          SET status = 'queued', updated_at = ${now}, next_attempt_at = NULL
+          SET status = 'queued', updated_at = ${asTimestamptz(now)}, next_attempt_at = NULL
           WHERE id = ${deliveryId}
         `
         await tx`
@@ -1249,8 +1255,8 @@ export function createDatabase(databaseUrl: string): AuthStore & {
           VALUES (
             ${randomUUID()},
             ${OUTBOX_TOPIC_ARCHIVE_DELIVERY},
-            ${tx.json({ deliveryId })},
-            ${now},
+            ${JSON.stringify({ deliveryId })}::jsonb,
+            ${asTimestamptz(now)},
             0
           )
         `
@@ -1270,7 +1276,7 @@ export function createDatabase(databaseUrl: string): AuthStore & {
           ${randomUUID()},
           ${OUTBOX_TOPIC_SIYUAN_TEST},
           ${client.json({ targetId })},
-          ${now},
+          ${asTimestamptz(now)},
           0
         )
       `
