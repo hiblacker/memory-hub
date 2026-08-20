@@ -115,6 +115,28 @@ describe('executeSiyuanArchive', () => {
     expect(client.renameDoc).toHaveBeenCalledOnce()
   })
 
+  it('recreates the document when SiYuan reports tree not found', async () => {
+    const client = {
+      createDocWithMd: vi.fn(async () => ({ id: 'doc-rebuilt' })),
+      getDocExists: vi.fn(async () => {
+        throw new Error('get block failed: tree not found')
+      }),
+      updateBlock: vi.fn(),
+    }
+    const result = await executeSiyuanArchive(
+      client as never,
+      sample,
+      {
+        notebookId: 'nb',
+        pathTemplate: '/MemoryHub/{group}/{title}',
+        documentId: '20260816224015-2jb0ga2',
+      },
+    )
+    expect(result.documentId).toBe('doc-rebuilt')
+    expect(client.createDocWithMd).toHaveBeenCalledOnce()
+    expect(client.updateBlock).not.toHaveBeenCalled()
+  })
+
   it('recreates the document when the previous id is missing', async () => {
     const client = {
       createDocWithMd: vi.fn(async () => ({ id: 'doc-new' })),

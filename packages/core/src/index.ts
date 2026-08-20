@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto'
 
 import { inspectAndRedact, type Sensitivity } from '@memory-hub/security'
 import type { SiyuanClient } from '@memory-hub/siyuan'
-import { SiyuanError } from '@memory-hub/siyuan'
+import { isMissingSiyuanDocument, SiyuanError } from '@memory-hub/siyuan'
 
 export type MemoryType =
   | 'permanent_fact'
@@ -182,36 +182,40 @@ export async function executeSiyuanArchive(
   const markdown = renderArchiveMarkdown(input)
   const requestFingerprint = fingerprintContent(markdown)
 
-  if (target.documentId && (await client.getDocExists(target.documentId))) {
-    const updated = await client.updateBlock({
-      id: target.documentId,
-      data: markdown,
-      dataType: 'markdown',
-    })
-    if (
-      target.previousPath &&
-      target.previousPath !== path
-    ) {
-      try {
-        await client.renameDoc({
-          notebook: target.notebookId,
-          path: target.previousPath,
-          title: sanitizePathSegment(input.title),
+  if (target.documentId) {
+    try {
+      const exists = await client.getDocExists(target.documentId)
+      if (exists) {
+        const updated = await client.updateBlock({
+          id: target.documentId,
+          data: markdown,
+          dataType: 'markdown',
         })
-      } catch {
-        // Content is already updated; path rename can be retried separately.
+        if (target.previousPath && target.previousPath !== path) {
+          try {
+            await client.renameDoc({
+              notebook: target.notebookId,
+              path: target.previousPath,
+              title: sanitizePathSegment(input.title),
+            })
+          } catch {
+            // Content is already updated; path rename can be retried separately.
+          }
+        }
+        const blockId =
+          updated.id ||
+          updated.doOperations?.find((item) => item.id)?.id ||
+          target.documentId
+        return {
+          documentId: target.documentId,
+          blockId,
+          requestFingerprint,
+          path,
+          markdown,
+        }
       }
-    }
-    const blockId =
-      updated.id ||
-      updated.doOperations?.find((item) => item.id)?.id ||
-      target.documentId
-    return {
-      documentId: target.documentId,
-      blockId,
-      requestFingerprint,
-      path,
-      markdown,
+    } catch (error) {
+      if (!isMissingSiyuanDocument(error)) throw error
     }
   }
 

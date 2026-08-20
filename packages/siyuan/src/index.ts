@@ -42,6 +42,13 @@ export class SiyuanError extends Error {
   }
 }
 
+export function isMissingSiyuanDocument(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error ?? '')
+  return /tree not found|block not found|document not found|文档不存在|块不存在/i.test(
+    message,
+  )
+}
+
 function normalizeBaseUrl(raw: string): URL {
   let parsed: URL
   try {
@@ -179,9 +186,7 @@ export class SiyuanClient {
       await this.request('/api/block/getBlockKramdown', { id })
       return true
     } catch (error) {
-      if (error instanceof SiyuanError && error.code === 'SIYUAN_API_ERROR') {
-        return false
-      }
+      if (isMissingSiyuanDocument(error)) return false
       throw error
     }
   }

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 
-import { SiyuanClient, SiyuanError } from './index.js'
+import { isMissingSiyuanDocument, SiyuanClient, SiyuanError } from './index.js'
 
 describe('SiyuanClient', () => {
   it('lists notebooks with Authorization Token by default', async () => {
@@ -78,5 +78,13 @@ describe('SiyuanClient', () => {
       code: 'SIYUAN_TIMEOUT',
       retryable: true,
     })
+  })
+})
+
+describe('isMissingSiyuanDocument', () => {
+  it('detects tree not found', () => {
+    expect(
+      isMissingSiyuanDocument(new SiyuanError('get block failed: tree not found', 'SIYUAN_API_ERROR')),
+    ).toBe(true)
   })
 })
