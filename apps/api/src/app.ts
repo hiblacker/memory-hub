@@ -783,6 +783,10 @@ export function buildApp({
       const error = mutationError(result)
       return reply.status(error.status).send(error.body)
     }
+    const synced = await authStore.approveCandidate(candidateId)
+    if (synced.ok) {
+      return reply.send(toCandidateSummary(synced.candidate))
+    }
     return reply.send(toCandidateSummary(result.candidate))
   })
 
