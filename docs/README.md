@@ -23,7 +23,7 @@
 13. [记忆正文 Markdown 与排版规范](13-memory-markdown-formatting.md)
 14. [记忆修订、同步与版本历史](14-memory-revision-and-version-history.md)
 15. [工作区体验、筛选分页与回收站](15-workspace-ux-and-deletion.md)
-16. [TODO（待定事项）](TODO.md)
+16. [ChatGPT 会话级长期记忆与项目聚合](16-chatgpt-session-memory.md)\n17. [TODO（待定事项）](TODO.md)
 
 当前实现进度：登录、手动录入、收件箱列表与候选详情审核已完成。后续按 [V1 范围与开发顺序](06-v1-scope.md) 继续实现 Markdown 正文编辑/预览、思源归档交付与人工闭环剩余能力。
 
