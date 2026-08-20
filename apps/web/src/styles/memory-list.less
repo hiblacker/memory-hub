@@ -1,0 +1,56 @@
+@import (reference) './tokens.less';
+
+.memory-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.memory-list-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.memory-list-search {
+  width: min(280px, 100%);
+}
+
+.memory-list-select {
+  min-width: 180px;
+  max-width: 280px;
+}
+
+.memory-list-date {
+  min-width: 240px;
+}
+
+.memory-list-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.memory-list-total {
+  color: var(--mh-muted);
+  font-size: 13px;
+}
+
+.memory-title-link {
+  color: var(--mh-text);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.memory-title-link:hover {
+  color: var(--mh-primary);
+}
+
+.memory-row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}

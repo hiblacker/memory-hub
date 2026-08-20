@@ -226,8 +226,16 @@ export async function listSyncedMemories(
   return CandidateListSchema.parse(await request(`/api/v1/synced${suffix}`))
 }
 
-export async function listTrashedMemories(): Promise<CandidateList> {
-  return CandidateListSchema.parse(await request('/api/v1/trash'))
+export async function listTrashedMemories(
+  query: Record<string, string | number | undefined> = {},
+): Promise<CandidateList> {
+  const params = new URLSearchParams()
+  for (const [key, value] of Object.entries(query)) {
+    if (value === undefined || value === '') continue
+    params.set(key, String(value))
+  }
+  const suffix = params.toString() ? '?' + params.toString() : ''
+  return CandidateListSchema.parse(await request('/api/v1/trash' + suffix))
 }
 
 export async function trashCandidate(candidateId: string): Promise<CandidateSummary> {

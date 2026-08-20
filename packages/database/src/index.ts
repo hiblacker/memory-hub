@@ -1546,6 +1546,7 @@ export function createDatabase(databaseUrl: string): AuthStore & {
           SET status = 'pending',
               deleted_at = NULL,
               deleted_from_status = NULL,
+              current_version_id = NULL,
               updated_at = ${asTimestamptz(now)}
           WHERE id = ${id}
         `

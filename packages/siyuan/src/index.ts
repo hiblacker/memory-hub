@@ -206,6 +206,12 @@ export class SiyuanClient {
   async removeDocById(id: string): Promise<void> {
     try {
       await this.request('/api/filetree/removeDocByID', { id })
+      return
+    } catch (error) {
+      if (isMissingSiyuanDocument(error)) return
+    }
+    try {
+      await this.request('/api/filetree/removeDocByID', { ids: [id] })
     } catch (error) {
       if (isMissingSiyuanDocument(error)) return
       throw error

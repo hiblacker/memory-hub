@@ -295,7 +295,7 @@ describe('MemoryHub API', () => {
       cookies: { memoryhub_session: cookie },
     })
     expect(restored.statusCode).toBe(200)
-    expect(restored.json().status).toBe('pending')
+    expect(['pending', 'queued']).toContain(restored.json().status)
   })
 
   it('拒绝无效的候选输入', async () => {

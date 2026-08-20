@@ -235,6 +235,16 @@ async function publishOutbox(
           retryLimit: 3,
           expireInSeconds: 60 * 30,
         })
+      } else if (message.topic === OUTBOX_TOPIC_SIYUAN_PURGE) {
+        const candidateId = String(message.payload.candidateId ?? '')
+        const documentIds = Array.isArray(message.payload.documentIds)
+          ? message.payload.documentIds.map(String)
+          : []
+        if (!candidateId) throw new Error('outbox payload missing candidateId')
+        await boss.send(QUEUE_SIYUAN_PURGE, { candidateId, documentIds }, {
+          retryLimit: 0,
+          expireInSeconds: 60 * 30,
+        })
       } else if (message.topic === OUTBOX_TOPIC_SIYUAN_TEST) {
         const targetId = String(message.payload.targetId ?? '')
         if (!targetId) throw new Error('outbox payload missing targetId')
