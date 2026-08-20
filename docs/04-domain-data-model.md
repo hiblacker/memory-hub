@@ -58,7 +58,8 @@ erDiagram
 candidate: pending -> approved -> queued -> archived
                     -> rejected
                     -> conflict
-archived -> superseded
+archived -> pending   # 保存有差异的修订
+archived -> superseded # 旧版本被新版本替代，不单独作为候选状态
 
 delivery: queued -> processing -> succeeded
                                -> retrying -> dead_letter
@@ -71,3 +72,11 @@ delivery: queued -> processing -> succeeded
 - 语义近似：V1 使用标题、canonical key 和 trigram 相似度提示，不自动合并。
 - 冲突：同一 canonical key 出现不兼容内容时标记 `conflict`，禁止自动归档。
 - 替代：审核通过的新版本设置 `supersedes_version_id`，旧版本保留 `valid_to`。
+
+
+## 修订与当前版本
+
+- `memory_candidates` 保存工作副本；`current_version_id` 指向最近一次成功同步的版本。
+- 修订保存后候选回到 `pending`，不立刻插入 `memory_versions`。
+- 批准时追加新版本和新交付；Worker 优先更新既有思源 `document_id`。
+- 成功后切换 `current_version_id`。旧版本只读保留，用于历史和比对。

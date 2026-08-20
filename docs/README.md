@@ -21,7 +21,8 @@
 11. [Vue 状态管理工具调研](11-frontend-state-management.md)
 12. [前端交互设计图](12-frontend-interaction-design.md)
 13. [记忆正文 Markdown 与排版规范](13-memory-markdown-formatting.md)
-14. [TODO（待定事项）](TODO.md)
+14. [记忆修订、同步与版本历史](14-memory-revision-and-version-history.md)
+15. [TODO（待定事项）](TODO.md)
 
 当前实现进度：登录、手动录入、收件箱列表与候选详情审核已完成。后续按 [V1 范围与开发顺序](06-v1-scope.md) 继续实现 Markdown 正文编辑/预览、思源归档交付与人工闭环剩余能力。
 
@@ -45,4 +46,5 @@
 - [x] 接受 [记忆正文 Markdown 与排版规范](13-memory-markdown-formatting.md)：默认仅预览、双风格均含 emoji、录入/详情共用编辑器。
 - [x] 明确删除并不再排期：LLM 润色、WYSIWYG 富文本、复杂图文贴纸引擎、思源正文回写、自定义 CSS 主题市场。
 - [x] 图片 Markdown 是否支持待定，见 [TODO](TODO.md)。
+- [ ] 接受 [记忆修订、同步与版本历史](14-memory-revision-and-version-history.md)：已同步可修订、更新原思源文档、第二步做版本比对。
 
