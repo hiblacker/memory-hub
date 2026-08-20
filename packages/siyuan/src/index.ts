@@ -203,6 +203,13 @@ export class SiyuanClient {
     })
   }
 
+  async renameDocById(input: { id: string; title: string }): Promise<void> {
+    await this.request('/api/filetree/renameDocByID', {
+      id: input.id,
+      title: input.title,
+    })
+  }
+
   private authHeaders(): Record<string, string> {
     if (this.authMode === 'authorization_token') {
       return { Authorization: `Token ${this.token}` }

@@ -113,6 +113,7 @@ export async function processArchiveDelivery(
         notebookId: target.notebookId,
         pathTemplate: target.pathTemplate,
         documentId: delivery.documentId,
+        previousPath: delivery.path,
       },
     )
     await store.markDeliverySucceeded(deliveryId, {

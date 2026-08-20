@@ -202,6 +202,10 @@ export async function executeSiyuanArchive(
             // Content is already updated; path rename can be retried separately.
           }
         }
+        await client.renameDocById({
+          id: target.documentId,
+          title: sanitizePathSegment(input.title),
+        })
         const blockId =
           updated.id ||
           updated.doOperations?.find((item) => item.id)?.id ||
@@ -224,6 +228,14 @@ export async function executeSiyuanArchive(
     path,
     markdown,
   })
+  try {
+    await client.renameDocById({
+      id: created.id,
+      title: sanitizePathSegment(input.title),
+    })
+  } catch {
+    // Path already includes title; rename is a consistency fallback.
+  }
   return {
     documentId: created.id,
     blockId: created.id,

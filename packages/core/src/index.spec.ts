@@ -77,6 +77,7 @@ describe('executeSiyuanArchive', () => {
     const client = {
       createDocWithMd: vi.fn(async () => ({ id: 'doc-1' })),
       appendBlock: vi.fn(),
+      renameDocById: vi.fn(),
     }
     const result = await executeSiyuanArchive(
       client as never,
@@ -97,6 +98,7 @@ describe('executeSiyuanArchive', () => {
       getDocExists: vi.fn(async () => true),
       updateBlock: vi.fn(async () => ({ id: 'doc-existing' })),
       renameDoc: vi.fn(),
+      renameDocById: vi.fn(),
     }
     const result = await executeSiyuanArchive(
       client as never,
@@ -112,7 +114,10 @@ describe('executeSiyuanArchive', () => {
     expect(client.updateBlock).toHaveBeenCalledOnce()
     expect(client.appendBlock).not.toHaveBeenCalled()
     expect(client.createDocWithMd).not.toHaveBeenCalled()
-    expect(client.renameDoc).toHaveBeenCalledOnce()
+    expect(client.renameDocById).toHaveBeenCalledWith({
+      id: 'doc-existing',
+      title: '采用 PostgreSQL',
+    })
   })
 
   it('recreates the document when SiYuan reports tree not found', async () => {
