@@ -89,7 +89,7 @@ describe('MemoryHub Web', () => {
           counts: {
             pendingCandidates: 0,
             queuedDeliveries: 0,
-            archivedMemories: 0,
+            syncedMemories: 0,
           },
         })
       }
@@ -157,7 +157,7 @@ describe('MemoryHub Web', () => {
             counts: {
               pendingCandidates: candidates.length,
               queuedDeliveries: 0,
-              archivedMemories: 0,
+              syncedMemories: 0,
             },
           })
         }
@@ -211,7 +211,7 @@ describe('MemoryHub Web', () => {
             counts: {
               pendingCandidates: 1,
               queuedDeliveries: 0,
-              archivedMemories: 0,
+              syncedMemories: 0,
             },
           })
         }

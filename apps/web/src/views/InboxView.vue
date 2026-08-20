@@ -46,7 +46,7 @@ const statusLabels: Record<CandidateStatus, string> = {
   pending: '待审核',
   approved: '已批准',
   queued: '已排队',
-  archived: '已归档',
+  synced: '已同步',
   rejected: '已拒绝',
   conflict: '冲突',
 }
@@ -77,7 +77,7 @@ function summaryText(body: string) {
     <div class="page-heading">
       <div>
         <h1>候选收件箱</h1>
-        <p>集中审核、整理并归档长期记忆候选。</p>
+        <p>集中审核、整理并同步长期记忆候选。</p>
       </div>
       <div class="page-actions">
         <NButton type="primary" @click="router.push('/capture')">
@@ -97,8 +97,8 @@ function summaryText(body: string) {
         <strong>{{ homeQuery.data.value?.counts.queuedDeliveries ?? 0 }}</strong>
       </div>
       <div>
-        <span>已归档</span>
-        <strong>{{ homeQuery.data.value?.counts.archivedMemories ?? 0 }}</strong>
+        <span>已同步</span>
+        <strong>{{ homeQuery.data.value?.counts.syncedMemories ?? 0 }}</strong>
       </div>
     </section>
 
@@ -166,7 +166,7 @@ function summaryText(body: string) {
 
     <footer class="workspace-footer">
       <ShieldCheck :size="15" aria-hidden="true" />
-      <span>自动归档默认关闭，所有候选均保留来源与审计记录。</span>
+      <span>自动同步默认关闭，所有候选均保留来源与审计记录。</span>
     </footer>
   </AppShell>
 </template>

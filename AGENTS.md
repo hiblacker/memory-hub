@@ -4,7 +4,7 @@ This file provides repository-wide instructions for AI coding agents working on 
 
 ## Project Mission
 
-MemoryHub is a self-hosted, reviewable memory inbox for ChatGPT, Claude Code, and SiYuan. It collects candidate memories, preserves provenance, applies redaction and deduplication, supports human review or explicit automatic rules, and archives approved content to SiYuan.
+MemoryHub is a self-hosted, reviewable memory inbox for ChatGPT, Claude Code, and SiYuan. It collects candidate memories, preserves provenance, applies redaction and deduplication, supports human review or explicit automatic rules, and syncs approved content to SiYuan.
 
 The system must favor auditability, privacy, idempotency, and recoverability over autonomous behavior.
 
@@ -31,10 +31,10 @@ When code and an accepted design document disagree, do not silently choose one. 
 - Do not implement ChatGPT page monitoring, background scraping, hidden-memory access, or dependencies on private ChatGPT APIs.
 - ChatGPT capture must be user-triggered explicit save or official export import.
 - Do not implement vector databases, graph databases, Redis, Meilisearch, multi-user SaaS, or bidirectional SiYuan synchronization in V1 without a new accepted ADR.
-- SiYuan is the human-readable archive, not the task queue or business-state database.
+- SiYuan is the human-readable synced copy, not the task queue or business-state database.
 - PostgreSQL is the source of truth for events, candidates, versions, rules, deliveries, audits, and jobs.
 - Never edit SiYuan `.sy` files directly. Use documented kernel APIs through the SiYuan adapter.
-- Never silently delete or overwrite archived memories. Corrections create new versions or explicit compensation records.
+- Never silently delete or overwrite synced memories. Corrections create new versions or explicit compensation records.
 
 ## Repository Map
 

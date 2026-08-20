@@ -35,8 +35,9 @@ export interface ArchiveMemoryInput {
 export interface ArchiveTargetConfig {
   notebookId: string
   pathTemplate: string
-  /** Document id previously created for this path, if any */
+  /** Document id previously created for this memory, if any */
   documentId?: string | null
+  previousPath?: string | null
 }
 
 export interface ArchiveExecutionResult {
@@ -168,8 +169,8 @@ export function assertArchivable(
 }
 
 /**
- * Idempotent archive: if documentId known, append block; else create doc with markdown.
- * Caller must persist returned identifiers and skip when delivery already succeeded.
+ * Idempotent sync: update the existing SiYuan document when documentId is known
+ * and still present; otherwise create a document. Never append a second copy.
  */
 export async function executeSiyuanArchive(
   client: SiyuanClient,
@@ -181,16 +182,30 @@ export async function executeSiyuanArchive(
   const markdown = renderArchiveMarkdown(input)
   const requestFingerprint = fingerprintContent(markdown)
 
-  if (target.documentId) {
-    const append = await client.appendBlock({
-      parentID: target.documentId,
+  if (target.documentId && (await client.getDocExists(target.documentId))) {
+    const updated = await client.updateBlock({
+      id: target.documentId,
       data: markdown,
       dataType: 'markdown',
     })
+    if (
+      target.previousPath &&
+      target.previousPath !== path
+    ) {
+      try {
+        await client.renameDoc({
+          notebook: target.notebookId,
+          path: target.previousPath,
+          title: sanitizePathSegment(input.title),
+        })
+      } catch {
+        // Content is already updated; path rename can be retried separately.
+      }
+    }
     const blockId =
-      append.id ||
-      append.doOperations?.find((item) => item.id)?.id ||
-      null
+      updated.id ||
+      updated.doOperations?.find((item) => item.id)?.id ||
+      target.documentId
     return {
       documentId: target.documentId,
       blockId,
@@ -200,25 +215,21 @@ export async function executeSiyuanArchive(
     }
   }
 
-  try {
-    const created = await client.createDocWithMd({
-      notebook: target.notebookId,
-      path,
-      markdown,
-    })
-    return {
-      documentId: created.id,
-      blockId: created.id,
-      requestFingerprint,
-      path,
-      markdown,
-    }
-  } catch (error) {
-    // If create fails because path exists, surface retryable conflict for operator
-    if (error instanceof SiyuanError) throw error
-    throw error
+  const created = await client.createDocWithMd({
+    notebook: target.notebookId,
+    path,
+    markdown,
+  })
+  return {
+    documentId: created.id,
+    blockId: created.id,
+    requestFingerprint,
+    path,
+    markdown,
   }
 }
+
+export const executeSiyuanSync = executeSiyuanArchive
 
 export * from './ingestion.js'
 

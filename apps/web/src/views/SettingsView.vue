@@ -118,7 +118,7 @@ const testMutation = useMutation({
 </script>
 
 <template>
-  <AppShell active-nav="settings" title="思源连接" context="归档目标与鉴权引用">
+  <AppShell active-nav="settings" title="思源连接" context="同步目标与鉴权引用">
     <div class="page-stack">
       <NAlert type="info" class="page-alert">
         Token 不进入浏览器。请在仓库根目录

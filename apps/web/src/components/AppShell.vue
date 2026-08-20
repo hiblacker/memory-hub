@@ -24,7 +24,7 @@ import { getHomeSummary } from '../api'
 import { homeQueryKey, useLogoutMutation } from '../queries'
 
 defineProps<{
-  activeNav: 'inbox' | 'capture' | 'archives' | 'settings' | 'sources'
+  activeNav: 'inbox' | 'capture' | 'archives' | 'synced' | 'settings' | 'sources'
   title: string
   context: string
 }>()
@@ -86,10 +86,10 @@ async function signOut() {
           </RouterLink>
                     <RouterLink
             class="nav-item"
-            :class="{ active: activeNav === 'archives' }"
-            to="/archives">
+            :class="{ active: activeNav === 'synced' }"
+            to="/synced">
             <BookOpenCheck :size="17" aria-hidden="true" />
-            <span>归档记录</span>
+            <span>已同步记忆</span>
           </RouterLink>
 
           <p class="nav-section">配置</p>

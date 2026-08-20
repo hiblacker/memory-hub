@@ -70,7 +70,7 @@ export function evaluateSensitivity(
 
 /**
  * Conflict when same canonical key already has a candidate with different content hash
- * and status is archived/approved/queued/pending.
+ * and status is synced/approved/queued/pending.
  */
 export function isContentConflict(
   existingHash: string,

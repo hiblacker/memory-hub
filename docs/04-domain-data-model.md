@@ -55,11 +55,11 @@ erDiagram
 ## 状态机
 
 ```text
-candidate: pending -> approved -> queued -> archived
+candidate: pending -> approved -> queued -> synced
                     -> rejected
                     -> conflict
-archived -> pending   # 保存有差异的修订
-archived -> superseded # 旧版本被新版本替代，不单独作为候选状态
+synced -> pending   # 保存有差异的修订
+synced -> superseded # 旧版本被新版本替代，不单独作为候选状态
 
 delivery: queued -> processing -> succeeded
                                -> retrying -> dead_letter

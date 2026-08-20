@@ -14,8 +14,8 @@ ADR-0005 still applies: the API must not call SiYuan, and successful deliveries 
 
 ## Decision
 
-1. Keep the `archived` enum value. Present it in the UI as "已同步".
-2. Allow `PATCH` on an `archived` candidate. If the working copy hash differs from `current_version`, transition to `pending` and audit `candidate.revise`. Do not create a version until approve.
+1. Rename candidate status `archived` to `synced`. UI and API both use 同步 / synced.
+2. Allow `PATCH` on a `synced` candidate. If the working copy hash differs from `current_version`, transition to `pending` and audit `candidate.revise`. Do not create a version until approve.
 3. Approve always creates the next append-only version and a new delivery. If a previous successful delivery exists for the same candidate and target, the worker updates that `document_id` with `updateBlock` (and rename/move when the title path changes). It must not `appendBlock` onto an existing memory document.
 4. `current_version_id` changes only after the new delivery succeeds.
 5. Version listing and compare are read APIs over `memory_versions`. Compare returns field diffs plus line-level body hunks. Restoring a version copies it into the working copy and returns the candidate to `pending`.

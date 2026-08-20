@@ -80,7 +80,7 @@ describe('MemoryHub API', () => {
       counts: {
         pendingCandidates: 0,
         queuedDeliveries: 0,
-        archivedMemories: 0,
+        syncedMemories: 0,
       },
     })
 

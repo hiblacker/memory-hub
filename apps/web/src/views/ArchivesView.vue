@@ -3,13 +3,13 @@ import { NEmpty, NSpin, NTag } from 'naive-ui'
 import { useQuery } from '@tanstack/vue-query'
 import { useRouter } from 'vue-router'
 
-import { listArchives } from '../api'
+import { listSyncedMemories } from '../api'
 import AppShell from '../components/AppShell.vue'
 
 const router = useRouter()
-const archivesQuery = useQuery({
-  queryKey: ['archives'],
-  queryFn: listArchives,
+const syncedQuery = useQuery({
+  queryKey: ['synced'],
+  queryFn: listSyncedMemories,
 })
 
 const typeLabels: Record<string, string> = {
@@ -24,20 +24,20 @@ const typeLabels: Record<string, string> = {
 </script>
 
 <template>
-  <AppShell active-nav="archives" title="归档记录" context="已成功写入思源的记忆">
+  <AppShell active-nav="synced" title="已同步记忆" context="已成功同步到思源的记忆">
     <div class="page-stack">
-      <div v-if="archivesQuery.isLoading.value" class="page-loading">
+      <div v-if="syncedQuery.isLoading.value" class="page-loading">
         <NSpin size="large" />
       </div>
 
       <NEmpty
-        v-else-if="!(archivesQuery.data.value?.items.length)"
-        description="还没有已归档记忆"
+        v-else-if="!(syncedQuery.data.value?.items.length)"
+        description="还没有已同步记忆"
       />
 
       <div v-else class="candidate-list">
         <button
-          v-for="item in archivesQuery.data.value?.items"
+          v-for="item in syncedQuery.data.value?.items"
           :key="item.id"
           type="button"
           class="candidate-card"
@@ -45,7 +45,7 @@ const typeLabels: Record<string, string> = {
         >
           <div class="candidate-card-top">
             <strong>{{ item.title }}</strong>
-            <NTag size="small" type="success">已归档</NTag>
+            <NTag size="small" type="success">已同步</NTag>
           </div>
           <p class="candidate-card-summary">{{ item.body.slice(0, 120) }}</p>
           <div class="candidate-card-meta">

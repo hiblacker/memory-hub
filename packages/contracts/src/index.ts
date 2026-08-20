@@ -21,7 +21,7 @@ export const HomeSummarySchema = z.object({
   counts: z.object({
     pendingCandidates: z.number().int().nonnegative(),
     queuedDeliveries: z.number().int().nonnegative(),
-    archivedMemories: z.number().int().nonnegative(),
+    syncedMemories: z.number().int().nonnegative(),
   }),
 })
 
@@ -39,7 +39,7 @@ export const CandidateStatusSchema = z.enum([
   'pending',
   'approved',
   'queued',
-  'archived',
+  'synced',
   'rejected',
   'conflict',
 ])

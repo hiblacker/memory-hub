@@ -206,8 +206,8 @@ export async function retryDelivery(deliveryId: string): Promise<ArchiveDelivery
   )
 }
 
-export async function listArchives(): Promise<CandidateList> {
-  return CandidateListSchema.parse(await request('/api/v1/archives'))
+export async function listSyncedMemories(): Promise<CandidateList> {
+  return CandidateListSchema.parse(await request('/api/v1/synced'))
 }
 export async function listConnectors(): Promise<ConnectorSummary[]> {
   return ConnectorListSchema.parse(await request('/api/v1/connectors')).items

@@ -174,6 +174,30 @@ export class SiyuanClient {
     })
   }
 
+  async getDocExists(id: string): Promise<boolean> {
+    try {
+      await this.request('/api/block/getBlockKramdown', { id })
+      return true
+    } catch (error) {
+      if (error instanceof SiyuanError && error.code === 'SIYUAN_API_ERROR') {
+        return false
+      }
+      throw error
+    }
+  }
+
+  async renameDoc(input: {
+    notebook: string
+    path: string
+    title: string
+  }): Promise<void> {
+    await this.request('/api/filetree/renameDoc', {
+      notebook: input.notebook,
+      path: input.path,
+      title: input.title,
+    })
+  }
+
   private authHeaders(): Record<string, string> {
     if (this.authMode === 'authorization_token') {
       return { Authorization: `Token ${this.token}` }

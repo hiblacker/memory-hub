@@ -38,7 +38,7 @@ export interface DatabaseSessionUser {
 export interface HomeCounts {
   pendingCandidates: number
   queuedDeliveries: number
-  archivedMemories: number
+  syncedMemories: number
 }
 
 export type MemoryType =
@@ -54,7 +54,7 @@ export type CandidateStatus =
   | 'pending'
   | 'approved'
   | 'queued'
-  | 'archived'
+  | 'synced'
   | 'rejected'
   | 'conflict'
 
@@ -181,7 +181,7 @@ export type ApproveCandidateResult =
     }
   | {
       ok: false
-      code: 'NOT_FOUND' | 'INVALID_STATE' | 'NO_TARGET'
+      code: 'NOT_FOUND' | 'INVALID_STATE' | 'NO_TARGET' | 'NO_CHANGES'
       message: string
     }
 
@@ -263,7 +263,7 @@ export interface AuthStore {
       blocked?: boolean
     },
   ): Promise<ArchiveDeliveryRecord | undefined>
-  listArchivedCandidates(): Promise<CandidateRecord[]>
+  listSyncedCandidates(): Promise<CandidateRecord[]>
   enqueueDeliveryRetry(
     deliveryId: string,
   ): Promise<ArchiveDeliveryRecord | undefined>
@@ -744,6 +744,21 @@ export function createDatabase(databaseUrl: string): AuthStore & {
         `)
       }
 
+      const appliedV6 = await client<{ version: number }[]>`
+        SELECT version FROM schema_migrations WHERE version = 6
+      `
+      if (appliedV6.length === 0) {
+        await client.begin(async (transaction) => {
+          await transaction.unsafe(`
+            UPDATE memory_candidates
+              SET status = 'synced'
+              WHERE status = 'archived';
+            INSERT INTO schema_migrations (version) VALUES (6)
+            ON CONFLICT (version) DO NOTHING;
+          `)
+        })
+      }
+
       await applySourceEventsMigration(client)
     },
 
@@ -816,12 +831,12 @@ export function createDatabase(databaseUrl: string): AuthStore & {
         db
           .select({ value: count() })
           .from(memoryCandidates)
-          .where(eq(memoryCandidates.status, 'archived')),
+          .where(eq(memoryCandidates.status, 'synced')),
       ])
       return {
         pendingCandidates: Number(pending[0]?.value ?? 0),
         queuedDeliveries: Number(queued[0]?.value ?? 0),
-        archivedMemories: Number(archived[0]?.value ?? 0),
+        syncedMemories: Number(archived[0]?.value ?? 0),
       }
     },
 
@@ -868,10 +883,34 @@ export function createDatabase(databaseUrl: string): AuthStore & {
 
     async updateCandidate(id, input) {
       const current = await this.getCandidate(id)
-      const blocked = pendingOnly(current)
-      if (blocked) return blocked
+      if (!current) {
+        return { ok: false, code: 'NOT_FOUND', message: '候选记忆不存在。' }
+      }
+      if (current.status !== 'pending' && current.status !== 'synced') {
+        return {
+          ok: false,
+          code: 'INVALID_STATE',
+          message: '仅待审核或已同步记忆可保存修订。',
+        }
+      }
 
       const now = new Date()
+      let nextStatus = current.status
+      if (current.status === 'synced') {
+        const version = current.currentVersionId
+          ? await this.getMemoryVersion(current.currentVersionId)
+          : undefined
+        const changed =
+          !version ||
+          version.title !== input.title ||
+          version.body !== input.body ||
+          version.memoryType !== input.memoryType ||
+          (version.project ?? null) !== (input.project ?? null) ||
+          version.renderStyle !== input.renderStyle ||
+          version.emojiEnabled !== input.emojiEnabled
+        if (changed) nextStatus = 'pending'
+      }
+
       await db
         .update(memoryCandidates)
         .set({
@@ -881,9 +920,20 @@ export function createDatabase(databaseUrl: string): AuthStore & {
           project: input.project ?? null,
           renderStyle: input.renderStyle,
           emojiEnabled: input.emojiEnabled,
+          status: nextStatus,
           updatedAt: now,
         })
         .where(eq(memoryCandidates.id, id))
+
+      if (current.status === 'synced' && nextStatus === 'pending') {
+        await writeAuditInternal({
+          actorType: 'user',
+          action: 'candidate.revise',
+          entityType: 'memory_candidate',
+          entityId: id,
+          summary: '保存已同步记忆的修订，等待再次审核。',
+        })
+      }
 
       const updated = await this.getCandidate(id)
       return { ok: true, candidate: updated! }
@@ -898,7 +948,25 @@ export function createDatabase(databaseUrl: string): AuthStore & {
         return {
           ok: false,
           code: 'INVALID_STATE',
-          message: '仅待审核候选可批准归档。',
+          message: '仅待审核记忆可批准并同步。已同步记忆请先保存修订。',
+        }
+      }
+      if (current.currentVersionId) {
+        const currentVersion = await this.getMemoryVersion(current.currentVersionId)
+        if (
+          currentVersion &&
+          currentVersion.title === current.title &&
+          currentVersion.body === current.body &&
+          currentVersion.memoryType === current.memoryType &&
+          (currentVersion.project ?? null) === (current.project ?? null) &&
+          currentVersion.renderStyle === current.renderStyle &&
+          currentVersion.emojiEnabled === current.emojiEnabled
+        ) {
+          return {
+            ok: false,
+            code: 'NO_CHANGES',
+            message: '内容与已同步版本相同，无需再次同步。',
+          }
         }
       }
 
@@ -907,7 +975,7 @@ export function createDatabase(databaseUrl: string): AuthStore & {
         return {
           ok: false,
           code: 'NO_TARGET',
-          message: '未配置可用的思源归档目标。',
+          message: '未配置可用的思源同步目标。',
         }
       }
       if (!target.notebookId) {
@@ -921,10 +989,28 @@ export function createDatabase(databaseUrl: string): AuthStore & {
       const now = new Date()
       const versionId = randomUUID()
       const deliveryId = randomUUID()
-      const versionNumber = 1
       const hash = contentHash(current.title, current.body)
+      const previousRows = await db
+        .select()
+        .from(archiveDeliveries)
+        .where(
+          and(
+            eq(archiveDeliveries.candidateId, current.id),
+            eq(archiveDeliveries.targetId, target.id),
+            eq(archiveDeliveries.status, 'succeeded'),
+          ),
+        )
+        .orderBy(desc(archiveDeliveries.createdAt))
+        .limit(1)
+      const previousDelivery = previousRows[0]
 
       await client.begin(async (tx) => {
+        const versionRows = await tx<{ n: number }[]>`
+          SELECT COALESCE(MAX(version_number), 0) AS n
+          FROM memory_versions
+          WHERE candidate_id = ${current.id}
+        `
+        const versionNumber = Number(versionRows[0]?.n ?? 0) + 1
         await tx`
           INSERT INTO memory_versions (
             id, candidate_id, version_number, title, body, memory_type, source,
@@ -941,16 +1027,16 @@ export function createDatabase(databaseUrl: string): AuthStore & {
         await tx`
           INSERT INTO archive_deliveries (
             id, candidate_id, memory_version_id, target_id, status, attempt_count,
-            created_at, updated_at
+            document_id, path, created_at, updated_at
           ) VALUES (
             ${deliveryId}, ${current.id}, ${versionId}, ${target.id}, 'queued', 0,
+            ${previousDelivery?.documentId ?? null}, ${previousDelivery?.path ?? null},
             ${asTimestamptz(now)}, ${asTimestamptz(now)}
           )
         `
         await tx`
           UPDATE memory_candidates
           SET status = 'queued',
-              current_version_id = ${versionId},
               rejection_reason = NULL,
               updated_at = ${asTimestamptz(now)}
           WHERE id = ${current.id}
@@ -960,7 +1046,7 @@ export function createDatabase(databaseUrl: string): AuthStore & {
             id, actor_type, action, entity_type, entity_id, summary, detail, created_at
           ) VALUES (
             ${randomUUID()}, 'user', 'candidate.approve', 'memory_candidate',
-            ${current.id}, ${'批准候选并进入归档队列'},
+            ${current.id}, ${'批准记忆并进入同步队列'},
             ${JSON.stringify({ deliveryId, versionId, targetId: target.id })}::jsonb,
             ${asTimestamptz(now)}
           )
@@ -1181,7 +1267,11 @@ export function createDatabase(databaseUrl: string): AuthStore & {
         if (candidateId) {
           await tx`
             UPDATE memory_candidates
-            SET status = 'archived', updated_at = ${asTimestamptz(now)}
+            SET status = 'synced',
+                current_version_id = (
+                  SELECT memory_version_id FROM archive_deliveries WHERE id = ${id}
+                ),
+                updated_at = ${asTimestamptz(now)}
             WHERE id = ${candidateId}
           `
           await tx`
@@ -1189,7 +1279,7 @@ export function createDatabase(databaseUrl: string): AuthStore & {
               id, actor_type, action, entity_type, entity_id, summary, detail, created_at
             ) VALUES (
               ${randomUUID()}, 'worker', 'delivery.succeeded', 'archive_delivery',
-              ${id}, ${'思源归档成功'},
+              ${id}, ${'思源同步成功'},
               ${JSON.stringify({ documentId: input.documentId, blockId: input.blockId })}::jsonb,
               ${asTimestamptz(now)}
             )
@@ -1230,11 +1320,11 @@ export function createDatabase(databaseUrl: string): AuthStore & {
       return this.getDelivery(id)
     },
 
-    async listArchivedCandidates() {
+    async listSyncedCandidates() {
       const rows = await db
         .select(candidateSelect)
         .from(memoryCandidates)
-        .where(eq(memoryCandidates.status, 'archived'))
+        .where(eq(memoryCandidates.status, 'synced'))
         .orderBy(desc(memoryCandidates.updatedAt))
       return rows.map(mapCandidate)
     },
@@ -1376,7 +1466,7 @@ export function createMemoryStore(): AuthStore {
         queuedDeliveries: [...deliveries.values()].filter((item) =>
           ['queued', 'processing', 'retrying'].includes(item.status),
         ).length,
-        archivedMemories: candidates.filter((item) => item.status === 'archived')
+        syncedMemories: candidates.filter((item) => item.status === 'synced')
           .length,
       }
     },
@@ -1416,8 +1506,28 @@ export function createMemoryStore(): AuthStore {
         return { ok: false, code: 'NOT_FOUND', message: '候选记忆不存在。' }
       }
       const current = candidates[index]!
-      const blocked = pendingOnly(current)
-      if (blocked) return blocked
+      if (current.status !== 'pending' && current.status !== 'synced') {
+        return {
+          ok: false,
+          code: 'INVALID_STATE',
+          message: '仅待审核或已同步记忆可保存修订。',
+        }
+      }
+      let nextStatus = current.status
+      if (current.status === 'synced') {
+        const version = current.currentVersionId
+          ? versions.get(current.currentVersionId)
+          : undefined
+        const changed =
+          !version ||
+          version.title !== input.title ||
+          version.body !== input.body ||
+          version.memoryType !== input.memoryType ||
+          (version.project ?? null) !== (input.project ?? null) ||
+          version.renderStyle !== input.renderStyle ||
+          version.emojiEnabled !== input.emojiEnabled
+        if (changed) nextStatus = 'pending'
+      }
       const updated: CandidateRecord = {
         ...current,
         title: input.title,
@@ -1426,6 +1536,7 @@ export function createMemoryStore(): AuthStore {
         project: input.project ?? null,
         renderStyle: input.renderStyle,
         emojiEnabled: input.emojiEnabled,
+        status: nextStatus,
         updatedAt: new Date(),
       }
       candidates[index] = updated
@@ -1441,21 +1552,27 @@ export function createMemoryStore(): AuthStore {
         return {
           ok: false,
           code: 'INVALID_STATE',
-          message: '仅待审核候选可批准归档。',
+          message: '仅待审核记忆可批准并同步。',
         }
       }
       if (!target.enabled || !target.notebookId) {
         return {
           ok: false,
           code: 'NO_TARGET',
-          message: '未配置可用的思源归档目标。',
+          message: '未配置可用的思源同步目标。',
         }
       }
       const now = new Date()
       const version: MemoryVersionRecord = {
         id: randomUUID(),
         candidateId: current.id,
-        versionNumber: 1,
+        versionNumber:
+          Math.max(
+            0,
+            ...[...versions.values()]
+              .filter((item) => item.candidateId === current.id)
+              .map((item) => item.versionNumber),
+          ) + 1,
         title: current.title,
         body: current.body,
         memoryType: current.memoryType,
@@ -1477,9 +1594,21 @@ export function createMemoryStore(): AuthStore {
         targetId: target.id,
         status: 'queued',
         attemptCount: 0,
-        documentId: null,
+        documentId:
+          [...deliveries.values()].find(
+            (item) =>
+              item.candidateId === current.id &&
+              item.targetId === target.id &&
+              item.status === 'succeeded',
+          )?.documentId ?? null,
         blockId: null,
-        path: null,
+        path:
+          [...deliveries.values()].find(
+            (item) =>
+              item.candidateId === current.id &&
+              item.targetId === target.id &&
+              item.status === 'succeeded',
+          )?.path ?? null,
         requestFingerprint: null,
         lastErrorCode: null,
         lastErrorMessage: null,
@@ -1501,7 +1630,6 @@ export function createMemoryStore(): AuthStore {
       const updated: CandidateRecord = {
         ...current,
         status: 'queued',
-        currentVersionId: version.id,
         updatedAt: now,
       }
       candidates[index] = updated
@@ -1623,7 +1751,8 @@ export function createMemoryStore(): AuthStore {
       if (index >= 0) {
         candidates[index] = {
           ...candidates[index]!,
-          status: 'archived',
+          status: 'synced',
+          currentVersionId: item.memoryVersionId,
           updatedAt: new Date(),
         }
       }
@@ -1647,8 +1776,8 @@ export function createMemoryStore(): AuthStore {
       deliveries.set(id, updated)
       return updated
     },
-    async listArchivedCandidates() {
-      return candidates.filter((item) => item.status === 'archived')
+    async listSyncedCandidates() {
+      return candidates.filter((item) => item.status === 'synced')
     },
     async enqueueDeliveryRetry(deliveryId) {
       const item = deliveries.get(deliveryId)

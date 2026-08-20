@@ -90,22 +90,48 @@ describe('executeSiyuanArchive', () => {
     expect(client.createDocWithMd).toHaveBeenCalledOnce()
   })
 
-  it('appends when document exists', async () => {
+  it('updates existing document instead of appending', async () => {
     const client = {
       createDocWithMd: vi.fn(),
-      appendBlock: vi.fn(async () => ({ id: 'block-9' })),
+      appendBlock: vi.fn(),
+      getDocExists: vi.fn(async () => true),
+      updateBlock: vi.fn(async () => ({ id: 'doc-existing' })),
+      renameDoc: vi.fn(),
     }
     const result = await executeSiyuanArchive(
       client as never,
       sample,
       {
         notebookId: 'nb',
-        pathTemplate: '/MemoryHub/10 长期记忆/{type}',
+        pathTemplate: '/MemoryHub/{group}/{title}',
         documentId: 'doc-existing',
+        previousPath: '/MemoryHub/手动归档/旧标题',
       },
     )
     expect(result.documentId).toBe('doc-existing')
-    expect(result.blockId).toBe('block-9')
-    expect(client.appendBlock).toHaveBeenCalledOnce()
+    expect(client.updateBlock).toHaveBeenCalledOnce()
+    expect(client.appendBlock).not.toHaveBeenCalled()
+    expect(client.createDocWithMd).not.toHaveBeenCalled()
+    expect(client.renameDoc).toHaveBeenCalledOnce()
+  })
+
+  it('recreates the document when the previous id is missing', async () => {
+    const client = {
+      createDocWithMd: vi.fn(async () => ({ id: 'doc-new' })),
+      getDocExists: vi.fn(async () => false),
+      updateBlock: vi.fn(),
+    }
+    const result = await executeSiyuanArchive(
+      client as never,
+      sample,
+      {
+        notebookId: 'nb',
+        pathTemplate: '/MemoryHub/{group}/{title}',
+        documentId: 'doc-missing',
+      },
+    )
+    expect(result.documentId).toBe('doc-new')
+    expect(client.createDocWithMd).toHaveBeenCalledOnce()
+    expect(client.updateBlock).not.toHaveBeenCalled()
   })
 })

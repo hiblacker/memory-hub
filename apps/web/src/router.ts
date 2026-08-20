@@ -6,7 +6,7 @@ import { authQueryKey } from './queries'
 import { queryClient } from './query-client'
 import CaptureView from './views/CaptureView.vue'
 import SettingsView from './views/SettingsView.vue'
-import ArchivesView from './views/ArchivesView.vue'
+import SyncedView from './views/ArchivesView.vue'
 import ConnectorsView from './views/ConnectorsView.vue'
 import CandidateDetailView from './views/CandidateDetailView.vue'
 import InboxView from './views/InboxView.vue'
@@ -41,8 +41,12 @@ export function createAppRouter(
       },
       {
         path: '/archives',
-        name: 'archives',
-        component: ArchivesView,
+        redirect: '/synced',
+      },
+      {
+        path: '/synced',
+        name: 'synced',
+        component: SyncedView,
         meta: { requiresAuth: true },
       },
       {

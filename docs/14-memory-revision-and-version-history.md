@@ -15,13 +15,13 @@
 
 | 内部状态 / 字段 | 界面文案 | 含义 |
 | --- | --- | --- |
-| `archived` | 已同步 | 最近一次批准版本已成功写入思源 |
+| `synced` | 已同步 | 最近一次批准版本已成功写入思源 |
 | `queued` | 同步中 | 已批准，Worker 正在写入或重试 |
 | `pending` | 待审核 | 从未同步，或已同步后再次修改 |
 | 批准并归档 | 批准并同步 | 创建新版本并入队写思源 |
 | 归档记录 | 已同步记忆 | 列出最近一次成功同步的记忆 |
 
-数据库枚举值暂不改名，避免无收益的破坏性迁移。只改产品语义和界面文案。
+候选状态从 `archived` 重命名为 `synced`，并迁移已有数据。交付表名仍为 `archive_deliveries`，表示对思源的投递记录。
 
 ## 2. 设计原则
 
@@ -39,7 +39,7 @@
 ```text
 pending --批准--> queued --交付成功--> archived
 queued --交付失败/死信--> queued 或保持 queued，交付进入 retrying / dead_letter
-archived --保存有差异的草稿--> pending
+synced --保存有差异的草稿--> pending
 rejected --保存草稿--> pending
 pending --拒绝--> rejected
 conflict --人工处理后--> pending
@@ -296,7 +296,7 @@ GET /api/v1/candidates/:candidateId/versions/compare?from=:versionId&to=:version
 
 本文件与页面画板更新后，需确认：
 
-- [ ] 接受「归档」在界面改为「同步」，内部状态仍用 `archived`。
+- [ ] 接受「归档」在界面改为「同步」，内部状态改为 `synced`。
 - [ ] 接受「先保存修订再批准」，不在编辑时直接写思源。
 - [ ] 接受修订更新原思源文档，不新建、不追加。
 - [ ] 接受版本历史作为第二步，不与修订主链路混在一个提交里做完。

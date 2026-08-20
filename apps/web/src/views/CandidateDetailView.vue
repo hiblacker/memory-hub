@@ -107,7 +107,7 @@ const statusLabels: Record<CandidateStatus, string> = {
   pending: '待审核',
   approved: '已批准',
   queued: '已排队',
-  archived: '已归档',
+  synced: '已同步',
   rejected: '已拒绝',
   conflict: '冲突',
 }
@@ -121,10 +121,17 @@ const sensitivityLabels: Record<Sensitivity, string> = {
 const isPending = computed(
   () => candidateQuery.data.value?.status === 'pending',
 )
+const isSynced = computed(
+  () => candidateQuery.data.value?.status === 'synced',
+)
+const editingSynced = computed(
+  () => isSynced.value && String(route.query.edit ?? '') === '1',
+)
+const isEditable = computed(() => isPending.value || editingSynced.value)
 
 const canSave = computed(
   () =>
-    isPending.value &&
+    isEditable.value &&
     form.title.trim().length > 0 &&
     form.body.trim().length > 0,
 )
@@ -132,7 +139,7 @@ const canSave = computed(
 const statusType = computed(() => {
   switch (candidateQuery.data.value?.status) {
     case 'approved':
-    case 'archived':
+    case 'synced':
       return 'success'
     case 'rejected':
     case 'conflict':
@@ -166,20 +173,26 @@ async function saveDraft() {
       emojiEnabled: form.emojiEnabled,
     },
   })
-  message.success('草稿已保存', { duration: 2000 })
+  message.success(
+    isSynced.value ? '修订已保存，等待再次同步' : '草稿已保存',
+    { duration: 2000 },
+  )
+  if (isSynced.value) {
+    await router.replace({ query: {} })
+  }
 }
 
 function confirmApprove() {
   if (!isPending.value || approveMutation.isPending.value) return
   dialog.warning({
-    title: '确认批准该候选？',
+    title: '确认批准并同步？',
     content:
-      '批准后将标记为已通过审核。当前版本尚未接入思源归档，后续可在归档流程中继续处理。',
-    positiveText: '确认批准',
+      '批准后将创建新版本并同步到思源。若该记忆曾同步过，将更新原文档而不是新建。',
+    positiveText: '确认并同步',
     negativeText: '取消',
     onPositiveClick: async () => {
       await approveMutation.mutateAsync(candidateId.value)
-      message.success('候选已批准', { duration: 2000 })
+      message.success('已加入同步队列', { duration: 2000 })
     },
   })
 }
@@ -194,7 +207,7 @@ function confirmReject() {
         h(
           'p',
           { class: 'reject-dialog-tip' },
-          '拒绝后保留来源与审计记录，但不会进入归档队列。',
+          '拒绝后保留来源与审计记录，但不会进入同步队列。',
         ),
         h(NInput, {
           type: 'textarea',
@@ -256,6 +269,20 @@ function confirmReject() {
           @submit.prevent="saveDraft"
         >
           <NAlert
+            v-if="editingSynced"
+            type="info"
+            class="page-alert compact"
+          >
+            这是已同步记忆的修订。保存后将重新进入待审核；批准后会更新原思源文档，不会新建另一篇。
+          </NAlert>
+          <NAlert
+            v-else-if="isSynced"
+            type="success"
+            class="page-alert compact"
+          >
+            已同步到思源。编辑并保存修订后，需要再次批准才会更新原文档。
+          </NAlert>
+          <NAlert
             v-if="candidateQuery.data.value.rejectionReason"
             type="warning"
             class="page-alert compact"
@@ -302,7 +329,7 @@ function confirmReject() {
               <NInput
                 v-model:value="form.title"
                 maxlength="200"
-                :disabled="!isPending"
+                :disabled="!isEditable"
                 placeholder="候选标题"
               />
             </NFormItem>
@@ -311,14 +338,14 @@ function confirmReject() {
                 <NSelect
                   v-model:value="form.memoryType"
                   :options="memoryTypeOptions"
-                  :disabled="!isPending"
+                  :disabled="!isEditable"
                 />
               </NFormItem>
               <NFormItem label="项目" class="detail-field-project">
                 <NInput
                   v-model:value="form.project"
                   maxlength="120"
-                  :disabled="!isPending"
+                  :disabled="!isEditable"
                   placeholder="可选，例如 memory-hub"
                 />
               </NFormItem>
@@ -326,7 +353,7 @@ function confirmReject() {
           </NForm>
 
           <div v-if="deliveriesQuery.data.value?.length" class="delivery-panel">
-            <strong>归档交付</strong>
+            <strong>同步记录</strong>
             <div
               v-for="item in deliveriesQuery.data.value"
               :key="item.id"
@@ -358,7 +385,7 @@ function confirmReject() {
               v-model:emoji-enabled="form.emojiEnabled"
               :memory-type="form.memoryType"
               :title="form.title"
-              :readonly="!isPending"
+              :readonly="!isEditable"
             />
           </div>
         </form>
@@ -401,7 +428,25 @@ function confirmReject() {
                 @click="confirmApprove"
               >
                 <template #icon><Check :size="16" /></template>
-                批准
+                批准并同步
+              </NButton>
+            </template>
+            <template v-else-if="candidateQuery.data.value && editingSynced">
+              <NButton @click="router.replace({ query: {} })">取消编辑</NButton>
+              <NButton
+                type="primary"
+                :disabled="!canSave"
+                :loading="updateMutation.isPending.value"
+                attr-type="submit"
+                form="candidate-detail-form"
+              >
+                <template #icon><Save :size="16" /></template>
+                保存修订
+              </NButton>
+            </template>
+            <template v-else-if="candidateQuery.data.value && isSynced">
+              <NButton type="primary" @click="router.replace({ query: { edit: '1' } })">
+                编辑此记忆
               </NButton>
             </template>
             <NButton

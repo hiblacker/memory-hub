@@ -37,7 +37,7 @@ async function submitLogin() {
 
       <div class="login-heading">
         <h1 id="login-title">登录管理端</h1>
-        <p>审核来自 ChatGPT 和 Claude Code 的候选记忆，并归档到思源笔记。</p>
+        <p>审核来自 ChatGPT 和 Claude Code 的候选记忆，并同步到思源笔记。</p>
       </div>
 
       <NForm :model="form" label-placement="top" @submit.prevent="submitLogin">

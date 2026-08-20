@@ -94,6 +94,18 @@ function mutationError(
     }
   }
 
+  if (result.code === 'NO_CHANGES') {
+    return {
+      status: 409 as const,
+      body: {
+        error: {
+          code: 'CANDIDATE_NO_CHANGES',
+          message: result.message,
+        },
+      },
+    }
+  }
+
   return {
     status: 409 as const,
     body: {
@@ -650,7 +662,7 @@ export function buildApp({
         return reply.status(404).send({
           error: {
             code: 'DELIVERY_NOT_FOUND',
-            message: '归档交付不存在。',
+            message: '同步交付不存在。',
           },
         })
       }
@@ -664,7 +676,19 @@ export function buildApp({
       request.cookies[SESSION_COOKIE_NAME],
     )
     if (!user) return reply.status(401).send(authError)
-    const items = (await authStore.listArchivedCandidates()).map(
+    const items = (await authStore.listSyncedCandidates()).map(
+      toCandidateSummary,
+    )
+    return reply.send(CandidateListSchema.parse({ items }))
+  })
+
+  app.get('/api/v1/synced', async (request, reply) => {
+    const user = await resolveSessionUser(
+      authStore,
+      request.cookies[SESSION_COOKIE_NAME],
+    )
+    if (!user) return reply.status(401).send(authError)
+    const items = (await authStore.listSyncedCandidates()).map(
       toCandidateSummary,
     )
     return reply.send(CandidateListSchema.parse({ items }))

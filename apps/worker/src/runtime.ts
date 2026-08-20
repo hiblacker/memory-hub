@@ -121,7 +121,7 @@ export async function processArchiveDelivery(
       path: result.path,
       requestFingerprint: result.requestFingerprint,
     })
-    console.info(`[worker] archived delivery ${deliveryId} -> ${result.documentId}`)
+    console.info(`[worker] synced delivery ${deliveryId} -> ${result.documentId}`)
   } catch (error) {
     const message = error instanceof Error ? error.message : '未知错误'
     const code = error instanceof SiyuanError ? error.code : 'ARCHIVE_FAILED'

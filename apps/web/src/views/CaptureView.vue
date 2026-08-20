@@ -58,7 +58,7 @@ async function submitCandidate() {
     <div class="page-heading">
       <div>
         <h1>手动录入候选记忆</h1>
-        <p>先写入收件箱，再进入审核与归档流程，不直接写入思源。</p>
+        <p>先写入收件箱，再进入审核与同步流程，不直接写入思源。</p>
       </div>
     </div>
 
