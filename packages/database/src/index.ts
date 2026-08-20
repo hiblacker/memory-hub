@@ -759,6 +759,23 @@ export function createDatabase(databaseUrl: string): AuthStore & {
         })
       }
 
+      const appliedV7 = await client<{ version: number }[]>`
+        SELECT version FROM schema_migrations WHERE version = 7
+      `
+      if (appliedV7.length === 0) {
+        await client.begin(async (transaction) => {
+          await transaction.unsafe(`
+            UPDATE memory_candidates
+              SET status = 'synced'
+              WHERE status = 'archived'
+          `)
+          await transaction.unsafe(`
+            INSERT INTO schema_migrations (version) VALUES (7)
+            ON CONFLICT (version) DO NOTHING
+          `)
+        })
+      }
+
       await applySourceEventsMigration(client)
     },
 

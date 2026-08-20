@@ -23,6 +23,7 @@ import type {
   ArchiveTargetRecord,
 } from '@memory-hub/database'
 import Fastify from 'fastify'
+import { ZodError } from 'zod'
 
 import {
   createSession,
@@ -692,6 +693,24 @@ export function buildApp({
       toCandidateSummary,
     )
     return reply.send(CandidateListSchema.parse({ items }))
+  })
+
+  app.setErrorHandler((error, _request, reply) => {
+    if (error instanceof ZodError) {
+      return reply.status(500).send({
+        error: {
+          code: 'RESPONSE_VALIDATION_ERROR',
+          message: '服务返回了无法识别的数据，请刷新后重试。',
+        },
+      })
+    }
+    const err = error as { statusCode?: number; message?: string }
+    return reply.status(err.statusCode && err.statusCode >= 400 ? err.statusCode : 500).send({
+      error: {
+        code: 'INTERNAL_ERROR',
+        message: '服务暂时不可用，请稍后重试。',
+      },
+    })
   })
 
   registerIngestionRoutes(app, authStore)

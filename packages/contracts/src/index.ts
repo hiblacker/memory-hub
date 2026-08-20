@@ -35,14 +35,17 @@ export const MemoryTypeSchema = z.enum([
   'sensitive',
 ])
 
-export const CandidateStatusSchema = z.enum([
-  'pending',
-  'approved',
-  'queued',
-  'synced',
-  'rejected',
-  'conflict',
-])
+export const CandidateStatusSchema = z.preprocess(
+  (value) => (value === 'archived' ? 'synced' : value),
+  z.enum([
+    'pending',
+    'approved',
+    'queued',
+    'synced',
+    'rejected',
+    'conflict',
+  ]),
+)
 
 export const SensitivitySchema = z.enum(['normal', 'private', 'strict'])
 
