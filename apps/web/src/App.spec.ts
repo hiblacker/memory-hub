@@ -83,18 +83,20 @@ describe('MemoryHub Web', () => {
       if (url.endsWith('/api/v1/auth/me')) {
         return jsonResponse({ user: { id: 'usr_admin', username: 'admin' } })
       }
-      if (url.endsWith('/api/v1/home')) {
+      if (url.includes('/api/v1/home')) {
         return jsonResponse({
           user: { id: 'usr_admin', username: 'admin' },
           counts: {
             pendingCandidates: 0,
             queuedDeliveries: 0,
             syncedMemories: 0,
+            trashedMemories: 0,
           },
+          siyuan: { status: 'unconfigured', notebookName: null, lastTestedAt: null },
         })
       }
-      if (url.endsWith('/api/v1/candidates')) {
-        return jsonResponse({ items: [] })
+      if (url.includes('/api/v1/candidates') && !/\/api\/v1\/candidates\/[^?]+/.test(url)) {
+        return jsonResponse({ items: [], page: 1, pageSize: 20, total: 0 })
       }
       return jsonResponse({ error: { code: 'NOT_FOUND' } }, 404)
     })
@@ -151,23 +153,25 @@ describe('MemoryHub Web', () => {
         if (url.endsWith('/api/v1/auth/me')) {
           return jsonResponse({ user: { id: 'usr_admin', username: 'admin' } })
         }
-        if (url.endsWith('/api/v1/home')) {
+        if (url.includes('/api/v1/home')) {
           return jsonResponse({
             user: { id: 'usr_admin', username: 'admin' },
             counts: {
               pendingCandidates: candidates.length,
               queuedDeliveries: 0,
               syncedMemories: 0,
+              trashedMemories: 0,
             },
           })
         }
         if (
-          url.endsWith('/api/v1/candidates') &&
+          url.includes('/api/v1/candidates') &&
+          !/\/api\/v1\/candidates\/[^?]+/.test(url) &&
           (!init || !init.method || init.method === 'GET')
         ) {
-          return jsonResponse({ items: candidates })
+          return jsonResponse({ items: candidates, page: 1, pageSize: 20, total: candidates.length })
         }
-        if (url.endsWith('/api/v1/candidates') && init?.method === 'POST') {
+        if (url.includes('/api/v1/candidates') && !url.includes('/candidates/') && init?.method === 'POST') {
           candidates = [demoCandidate]
           return jsonResponse(demoCandidate, 201)
         }
@@ -205,7 +209,7 @@ describe('MemoryHub Web', () => {
         if (url.endsWith('/api/v1/auth/me')) {
           return jsonResponse({ user: { id: 'usr_admin', username: 'admin' } })
         }
-        if (url.endsWith('/api/v1/home')) {
+        if (url.includes('/api/v1/home')) {
           return jsonResponse({
             user: { id: 'usr_admin', username: 'admin' },
             counts: {
@@ -216,10 +220,11 @@ describe('MemoryHub Web', () => {
           })
         }
         if (
-          url.endsWith('/api/v1/candidates') &&
+          url.includes('/api/v1/candidates') &&
+          !/\/api\/v1\/candidates\/[^?]+/.test(url) &&
           (!init || !init.method || init.method === 'GET')
         ) {
-          return jsonResponse({ items: [demoCandidate] })
+          return jsonResponse({ items: [demoCandidate], page: 1, pageSize: 20, total: 1 })
         }
         if (url.endsWith(`/api/v1/candidates/${demoCandidate.id}`)) {
           return jsonResponse(demoCandidate)

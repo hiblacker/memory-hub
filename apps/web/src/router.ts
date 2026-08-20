@@ -10,6 +10,7 @@ import SyncedView from './views/ArchivesView.vue'
 import ConnectorsView from './views/ConnectorsView.vue'
 import CandidateDetailView from './views/CandidateDetailView.vue'
 import InboxView from './views/InboxView.vue'
+import TrashView from './views/TrashView.vue'
 import LoginView from './views/LoginView.vue'
 
 export function createAppRouter(
@@ -42,6 +43,12 @@ export function createAppRouter(
       {
         path: '/archives',
         redirect: '/synced',
+      },
+      {
+        path: '/trash',
+        name: 'trash',
+        component: TrashView,
+        meta: { requiresAuth: true },
       },
       {
         path: '/synced',

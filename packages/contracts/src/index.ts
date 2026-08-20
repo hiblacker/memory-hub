@@ -16,12 +16,24 @@ export const LoginResponseSchema = z.object({
   user: UserSchema,
 })
 
+export const SiyuanConnectionStatusSchema = z.enum([
+  'unconfigured',
+  'failed',
+  'connected',
+])
+
 export const HomeSummarySchema = z.object({
   user: UserSchema,
   counts: z.object({
     pendingCandidates: z.number().int().nonnegative(),
     queuedDeliveries: z.number().int().nonnegative(),
     syncedMemories: z.number().int().nonnegative(),
+    trashedMemories: z.number().int().nonnegative().default(0),
+  }),
+  siyuan: z.object({
+    status: SiyuanConnectionStatusSchema,
+    notebookName: z.string().nullable(),
+    lastTestedAt: z.string().datetime().nullable(),
   }),
 })
 
@@ -44,6 +56,7 @@ export const CandidateStatusSchema = z.preprocess(
     'synced',
     'rejected',
     'conflict',
+    'trashed',
   ]),
 )
 
@@ -100,8 +113,27 @@ export const CandidateSummarySchema = z.object({
   updatedAt: z.string().datetime(),
 })
 
+export const CandidateListQuerySchema = z.object({
+  q: z.string().trim().max(200).optional(),
+  status: z.string().trim().max(200).optional(),
+  type: z.string().trim().max(200).optional(),
+  source: z.string().trim().max(80).optional(),
+  project: z.string().trim().max(120).optional(),
+  from: z.string().datetime().optional(),
+  to: z.string().datetime().optional(),
+  sort: z
+    .enum(['updated_at_desc', 'updated_at_asc', 'capture_time_desc'])
+    .default('updated_at_desc'),
+  page: z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce.number().int().min(1).max(100).default(20),
+  includeTrashed: z.coerce.boolean().optional(),
+})
+
 export const CandidateListSchema = z.object({
   items: z.array(CandidateSummarySchema),
+  page: z.number().int().min(1).default(1),
+  pageSize: z.number().int().min(1).default(20),
+  total: z.number().int().nonnegative().default(0),
 })
 
 export type LoginRequest = z.infer<typeof LoginRequestSchema>
@@ -122,6 +154,8 @@ export type RejectCandidateRequest = z.infer<
 >
 export type CandidateSummary = z.infer<typeof CandidateSummarySchema>
 export type CandidateList = z.infer<typeof CandidateListSchema>
+export type CandidateListQuery = z.infer<typeof CandidateListQuerySchema>
+export type SiyuanConnectionStatus = z.infer<typeof SiyuanConnectionStatusSchema>
 
 export const DeliveryStatusSchema = z.enum([
   'queued',

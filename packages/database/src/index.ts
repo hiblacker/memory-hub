@@ -1,7 +1,7 @@
 import postgres from 'postgres'
 import { drizzle } from 'drizzle-orm/postgres-js'
 import { createHash, randomUUID } from 'node:crypto'
-import { and, asc, count, desc, eq, gt, inArray, isNull, sql } from 'drizzle-orm'
+import { and, asc, count, desc, eq, gt, gte, ilike, inArray, isNull, lte, ne, or, sql } from 'drizzle-orm'
 
 import {
   archiveDeliveries,
@@ -39,6 +39,30 @@ export interface HomeCounts {
   pendingCandidates: number
   queuedDeliveries: number
   syncedMemories: number
+  trashedMemories: number
+}
+
+export type SiyuanHomeStatus = 'unconfigured' | 'failed' | 'connected'
+
+export interface ListCandidatesQuery {
+  q?: string
+  statuses?: string[]
+  types?: string[]
+  source?: string
+  project?: string
+  from?: Date
+  to?: Date
+  sort?: 'updated_at_desc' | 'updated_at_asc' | 'capture_time_desc'
+  page?: number
+  pageSize?: number
+  includeTrashed?: boolean
+}
+
+export interface CandidateListResult {
+  items: CandidateRecord[]
+  total: number
+  page: number
+  pageSize: number
 }
 
 export type MemoryType =
@@ -57,6 +81,7 @@ export type CandidateStatus =
   | 'synced'
   | 'rejected'
   | 'conflict'
+  | 'trashed'
 
 export type Sensitivity = 'normal' | 'private' | 'strict'
 export type RenderStyle = 'xhs_note' | 'tech_clean'
@@ -213,7 +238,7 @@ export interface AuthStore {
   deleteSession(tokenHash: string): Promise<void>
   getHomeCounts(): Promise<HomeCounts>
   createCandidate(input: CreateCandidateInput): Promise<CandidateRecord>
-  listCandidates(): Promise<CandidateRecord[]>
+  listCandidates(query?: ListCandidatesQuery): Promise<CandidateListResult>
   getCandidate(id: string): Promise<CandidateRecord | undefined>
   updateCandidate(
     id: string,
@@ -264,6 +289,14 @@ export interface AuthStore {
     },
   ): Promise<ArchiveDeliveryRecord | undefined>
   listSyncedCandidates(): Promise<CandidateRecord[]>
+  trashCandidate(id: string): Promise<CandidateMutationResult>
+  restoreCandidate(id: string): Promise<CandidateMutationResult>
+  destroyCandidate(id: string): Promise<CandidateMutationResult>
+  listTrashedCandidates(): Promise<CandidateRecord[]>
+  markPurgeResult(
+    candidateId: string,
+    result: { status: 'succeeded' | 'failed'; error?: string },
+  ): Promise<void>
   enqueueDeliveryRetry(
     deliveryId: string,
   ): Promise<ArchiveDeliveryRecord | undefined>
@@ -308,6 +341,7 @@ export const schema = {
 
 const DEFAULT_TARGET_ID = 'default-siyuan-target'
 export const OUTBOX_TOPIC_ARCHIVE_DELIVERY = 'archive.delivery'
+export const OUTBOX_TOPIC_SIYUAN_PURGE = 'siyuan.purge'
 export const OUTBOX_TOPIC_SIYUAN_TEST = 'siyuan.test'
 export { OUTBOX_TOPIC_PROCESS_SOURCE_EVENT } from './source-events.js'
 export type {
@@ -776,6 +810,25 @@ export function createDatabase(databaseUrl: string): AuthStore & {
         })
       }
 
+      const appliedV8 = await client<{ version: number }[]>`
+        SELECT version FROM schema_migrations WHERE version = 8
+      `
+      if (appliedV8.length === 0) {
+        await client.begin(async (transaction) => {
+          await transaction.unsafe(`
+            ALTER TABLE memory_candidates
+              ADD COLUMN IF NOT EXISTS deleted_at timestamptz,
+              ADD COLUMN IF NOT EXISTS deleted_from_status text,
+              ADD COLUMN IF NOT EXISTS purge_status text,
+              ADD COLUMN IF NOT EXISTS purge_error text
+          `)
+          await transaction.unsafe(`
+            INSERT INTO schema_migrations (version) VALUES (8)
+            ON CONFLICT (version) DO NOTHING
+          `)
+        })
+      }
+
       await applySourceEventsMigration(client)
     },
 
@@ -834,7 +887,7 @@ export function createDatabase(databaseUrl: string): AuthStore & {
     },
 
     async getHomeCounts() {
-      const [pending, queued, archived] = await Promise.all([
+      const [pending, queued, synced, trashed] = await Promise.all([
         db
           .select({ value: count() })
           .from(memoryCandidates)
@@ -849,11 +902,16 @@ export function createDatabase(databaseUrl: string): AuthStore & {
           .select({ value: count() })
           .from(memoryCandidates)
           .where(eq(memoryCandidates.status, 'synced')),
+        db
+          .select({ value: count() })
+          .from(memoryCandidates)
+          .where(eq(memoryCandidates.status, 'trashed')),
       ])
       return {
         pendingCandidates: Number(pending[0]?.value ?? 0),
         queuedDeliveries: Number(queued[0]?.value ?? 0),
-        syncedMemories: Number(archived[0]?.value ?? 0),
+        syncedMemories: Number(synced[0]?.value ?? 0),
+        trashedMemories: Number(trashed[0]?.value ?? 0),
       }
     },
 
@@ -881,12 +939,67 @@ export function createDatabase(databaseUrl: string): AuthStore & {
       return mapCandidate(record)
     },
 
-    async listCandidates() {
-      const rows = await db
-        .select(candidateSelect)
-        .from(memoryCandidates)
-        .orderBy(desc(memoryCandidates.updatedAt))
-      return rows.map(mapCandidate)
+    async listCandidates(query = {}) {
+      const page = query.page && query.page > 0 ? query.page : 1
+      const pageSize =
+        query.pageSize && query.pageSize > 0 && query.pageSize <= 100
+          ? query.pageSize
+          : 20
+      const filters = []
+      if (!query.includeTrashed) {
+        filters.push(ne(memoryCandidates.status, 'trashed'))
+      }
+      if (query.statuses && query.statuses.length > 0) {
+        filters.push(inArray(memoryCandidates.status, query.statuses))
+      }
+      if (query.types && query.types.length > 0) {
+        filters.push(inArray(memoryCandidates.memoryType, query.types))
+      }
+      if (query.source) {
+        filters.push(eq(memoryCandidates.source, query.source))
+      }
+      if (query.project) {
+        filters.push(ilike(memoryCandidates.project, `%${query.project}%`))
+      }
+      if (query.from) {
+        filters.push(gte(memoryCandidates.updatedAt, query.from))
+      }
+      if (query.to) {
+        filters.push(lte(memoryCandidates.updatedAt, query.to))
+      }
+      if (query.q) {
+        const like = `%${query.q}%`
+        filters.push(
+          or(ilike(memoryCandidates.title, like), ilike(memoryCandidates.body, like)),
+        )
+      }
+      const whereClause = filters.length > 0 ? and(...filters) : undefined
+      const orderBy =
+        query.sort === 'updated_at_asc'
+          ? asc(memoryCandidates.updatedAt)
+          : query.sort === 'capture_time_desc'
+            ? desc(memoryCandidates.captureTime)
+            : desc(memoryCandidates.updatedAt)
+
+      const [totalRows, rows] = await Promise.all([
+        db
+          .select({ value: count() })
+          .from(memoryCandidates)
+          .where(whereClause),
+        db
+          .select(candidateSelect)
+          .from(memoryCandidates)
+          .where(whereClause)
+          .orderBy(orderBy)
+          .limit(pageSize)
+          .offset((page - 1) * pageSize),
+      ])
+      return {
+        items: rows.map(mapCandidate),
+        total: Number(totalRows[0]?.value ?? 0),
+        page,
+        pageSize,
+      }
     },
 
     async getCandidate(id) {
@@ -1346,6 +1459,144 @@ export function createDatabase(databaseUrl: string): AuthStore & {
       return rows.map(mapCandidate)
     },
 
+    async listTrashedCandidates() {
+      const rows = await db
+        .select(candidateSelect)
+        .from(memoryCandidates)
+        .where(eq(memoryCandidates.status, 'trashed'))
+        .orderBy(desc(memoryCandidates.updatedAt))
+      return rows.map(mapCandidate)
+    },
+
+    async trashCandidate(id) {
+      const current = await this.getCandidate(id)
+      if (!current) {
+        return { ok: false, code: 'NOT_FOUND', message: '候选记忆不存在。' }
+      }
+      if (current.status === 'trashed') {
+        return { ok: false, code: 'INVALID_STATE', message: '记忆已在回收站。' }
+      }
+      const now = new Date()
+      const successDocs = await db
+        .select({ documentId: archiveDeliveries.documentId })
+        .from(archiveDeliveries)
+        .where(
+          and(
+            eq(archiveDeliveries.candidateId, id),
+            eq(archiveDeliveries.status, 'succeeded'),
+          ),
+        )
+      const documentIds = [
+        ...new Set(
+          successDocs
+            .map((item) => item.documentId)
+            .filter((item): item is string => Boolean(item)),
+        ),
+      ]
+      await client.begin(async (tx) => {
+        await tx`
+          UPDATE memory_candidates
+          SET status = 'trashed',
+              deleted_at = ${asTimestamptz(now)},
+              deleted_from_status = ${current.status},
+              purge_status = ${documentIds.length > 0 ? 'pending' : null},
+              purge_error = NULL,
+              updated_at = ${asTimestamptz(now)}
+          WHERE id = ${id}
+        `
+        await tx`
+          INSERT INTO audit_logs (
+            id, actor_type, action, entity_type, entity_id, summary, detail, created_at
+          ) VALUES (
+            ${randomUUID()}, 'user', 'candidate.trash', 'memory_candidate',
+            ${id}, ${'将记忆移入回收站'},
+            ${JSON.stringify({ documentIds, fromStatus: current.status })}::jsonb,
+            ${asTimestamptz(now)}
+          )
+        `
+        if (documentIds.length > 0) {
+          await tx`
+            INSERT INTO outbox_messages (id, topic, payload, created_at, publish_attempts)
+            VALUES (
+              ${randomUUID()},
+              ${OUTBOX_TOPIC_SIYUAN_PURGE},
+              ${JSON.stringify({ candidateId: id, documentIds })}::jsonb,
+              ${asTimestamptz(now)},
+              0
+            )
+          `
+        }
+      })
+      const updated = await this.getCandidate(id)
+      return { ok: true, candidate: updated! }
+    },
+
+    async restoreCandidate(id) {
+      const current = await this.getCandidate(id)
+      if (!current) {
+        return { ok: false, code: 'NOT_FOUND', message: '候选记忆不存在。' }
+      }
+      if (current.status !== 'trashed') {
+        return { ok: false, code: 'INVALID_STATE', message: '仅回收站中的记忆可恢复。' }
+      }
+      const now = new Date()
+      await client.begin(async (tx) => {
+        await tx`
+          UPDATE memory_candidates
+          SET status = 'pending',
+              deleted_at = NULL,
+              deleted_from_status = NULL,
+              updated_at = ${asTimestamptz(now)}
+          WHERE id = ${id}
+        `
+        await tx`
+          INSERT INTO audit_logs (
+            id, actor_type, action, entity_type, entity_id, summary, created_at
+          ) VALUES (
+            ${randomUUID()}, 'user', 'candidate.restore', 'memory_candidate',
+            ${id}, ${'从回收站恢复记忆，需重新同步思源'}, ${asTimestamptz(now)}
+          )
+        `
+      })
+      const updated = await this.getCandidate(id)
+      return { ok: true, candidate: updated! }
+    },
+
+    async markPurgeResult(candidateId, result) {
+      await db
+        .update(memoryCandidates)
+        .set({
+          purgeStatus: result.status,
+          purgeError: result.error ?? null,
+          updatedAt: new Date(),
+        })
+        .where(eq(memoryCandidates.id, candidateId))
+    },
+
+    async destroyCandidate(id) {
+      const current = await this.getCandidate(id)
+      if (!current) {
+        return { ok: false, code: 'NOT_FOUND', message: '候选记忆不存在。' }
+      }
+      if (current.status !== 'trashed') {
+        return { ok: false, code: 'INVALID_STATE', message: '仅回收站中的记忆可彻底删除。' }
+      }
+      const now = new Date()
+      await client.begin(async (tx) => {
+        await tx`DELETE FROM memory_versions WHERE candidate_id = ${id}`
+        await tx`DELETE FROM memory_candidates WHERE id = ${id}`
+        await tx`
+          INSERT INTO audit_logs (
+            id, actor_type, action, entity_type, entity_id, summary, created_at
+          ) VALUES (
+            ${randomUUID()}, 'user', 'candidate.destroy', 'memory_candidate',
+            ${id}, ${'彻底删除回收站记忆'}, ${asTimestamptz(now)}
+          )
+        `
+      })
+      return { ok: true, candidate: current }
+    },
+
     async enqueueDeliveryRetry(deliveryId) {
       const delivery = await this.getDelivery(deliveryId)
       if (!delivery) return undefined
@@ -1485,6 +1736,8 @@ export function createMemoryStore(): AuthStore {
         ).length,
         syncedMemories: candidates.filter((item) => item.status === 'synced')
           .length,
+        trashedMemories: candidates.filter((item) => item.status === 'trashed')
+          .length,
       }
     },
     async createCandidate(input) {
@@ -1509,10 +1762,31 @@ export function createMemoryStore(): AuthStore {
       candidates.unshift(record)
       return record
     },
-    async listCandidates() {
-      return [...candidates].sort(
-        (left, right) => right.updatedAt.getTime() - left.updatedAt.getTime(),
-      )
+    async listCandidates(query = {}) {
+      const page = query.page && query.page > 0 ? query.page : 1
+      const pageSize = query.pageSize && query.pageSize > 0 ? query.pageSize : 20
+      let items = [...candidates]
+      if (!query.includeTrashed) {
+        items = items.filter((item) => item.status !== 'trashed')
+      }
+      if (query.statuses?.length) {
+        items = items.filter((item) => query.statuses!.includes(item.status))
+      }
+      if (query.types?.length) {
+        items = items.filter((item) => query.types!.includes(item.memoryType))
+      }
+      if (query.q) {
+        const q = query.q.toLowerCase()
+        items = items.filter(
+          (item) =>
+            item.title.toLowerCase().includes(q) ||
+            item.body.toLowerCase().includes(q),
+        )
+      }
+      items.sort((left, right) => right.updatedAt.getTime() - left.updatedAt.getTime())
+      const total = items.length
+      const paged = items.slice((page - 1) * pageSize, page * pageSize)
+      return { items: paged, total, page, pageSize }
     },
     async getCandidate(id) {
       return candidates.find((item) => item.id === id)
@@ -1795,6 +2069,42 @@ export function createMemoryStore(): AuthStore {
     },
     async listSyncedCandidates() {
       return candidates.filter((item) => item.status === 'synced')
+    },
+    async listTrashedCandidates() {
+      return candidates.filter((item) => item.status === 'trashed')
+    },
+    async trashCandidate(id) {
+      const index = candidates.findIndex((item) => item.id === id)
+      if (index < 0) return { ok: false, code: 'NOT_FOUND', message: '候选记忆不存在。' }
+      const current = candidates[index]!
+      if (current.status === 'trashed') {
+        return { ok: false, code: 'INVALID_STATE', message: '记忆已在回收站。' }
+      }
+      const updated = { ...current, status: 'trashed' as const, updatedAt: new Date() }
+      candidates[index] = updated
+      return { ok: true, candidate: updated }
+    },
+    async restoreCandidate(id) {
+      const index = candidates.findIndex((item) => item.id === id)
+      if (index < 0) return { ok: false, code: 'NOT_FOUND', message: '候选记忆不存在。' }
+      const current = candidates[index]!
+      if (current.status !== 'trashed') {
+        return { ok: false, code: 'INVALID_STATE', message: '仅回收站中的记忆可恢复。' }
+      }
+      const updated = { ...current, status: 'pending' as const, updatedAt: new Date() }
+      candidates[index] = updated
+      return { ok: true, candidate: updated }
+    },
+    async markPurgeResult() {},
+    async destroyCandidate(id) {
+      const index = candidates.findIndex((item) => item.id === id)
+      if (index < 0) return { ok: false, code: 'NOT_FOUND', message: '候选记忆不存在。' }
+      const current = candidates[index]!
+      if (current.status !== 'trashed') {
+        return { ok: false, code: 'INVALID_STATE', message: '仅回收站中的记忆可彻底删除。' }
+      }
+      candidates.splice(index, 1)
+      return { ok: true, candidate: current }
     },
     async enqueueDeliveryRetry(deliveryId) {
       const item = deliveries.get(deliveryId)

@@ -105,8 +105,16 @@ export async function getHomeSummary(): Promise<HomeSummary> {
   return HomeSummarySchema.parse(await request('/api/v1/home'))
 }
 
-export async function listCandidates(): Promise<CandidateList> {
-  return CandidateListSchema.parse(await request('/api/v1/candidates'))
+export async function listCandidates(
+  query: Record<string, string | number | undefined> = {},
+): Promise<CandidateList> {
+  const params = new URLSearchParams()
+  for (const [key, value] of Object.entries(query)) {
+    if (value === undefined || value === '') continue
+    params.set(key, String(value))
+  }
+  const suffix = params.toString() ? `?${params.toString()}` : ''
+  return CandidateListSchema.parse(await request(`/api/v1/candidates${suffix}`))
 }
 
 export async function getCandidate(
@@ -206,8 +214,45 @@ export async function retryDelivery(deliveryId: string): Promise<ArchiveDelivery
   )
 }
 
-export async function listSyncedMemories(): Promise<CandidateList> {
-  return CandidateListSchema.parse(await request('/api/v1/synced'))
+export async function listSyncedMemories(
+  query: Record<string, string | number | undefined> = {},
+): Promise<CandidateList> {
+  const params = new URLSearchParams()
+  for (const [key, value] of Object.entries(query)) {
+    if (value === undefined || value === '') continue
+    params.set(key, String(value))
+  }
+  const suffix = params.toString() ? `?${params.toString()}` : ''
+  return CandidateListSchema.parse(await request(`/api/v1/synced${suffix}`))
+}
+
+export async function listTrashedMemories(): Promise<CandidateList> {
+  return CandidateListSchema.parse(await request('/api/v1/trash'))
+}
+
+export async function trashCandidate(candidateId: string): Promise<CandidateSummary> {
+  return CandidateSummarySchema.parse(
+    await request(`/api/v1/candidates/${candidateId}/trash`, {
+      method: 'POST',
+      body: JSON.stringify({}),
+    }),
+  )
+}
+
+export async function restoreCandidate(candidateId: string): Promise<CandidateSummary> {
+  return CandidateSummarySchema.parse(
+    await request(`/api/v1/candidates/${candidateId}/restore`, {
+      method: 'POST',
+      body: JSON.stringify({}),
+    }),
+  )
+}
+
+export async function destroyCandidate(candidateId: string): Promise<void> {
+  await request(`/api/v1/candidates/${candidateId}/destroy`, {
+    method: 'POST',
+    body: JSON.stringify({}),
+  })
 }
 export async function listConnectors(): Promise<ConnectorSummary[]> {
   return ConnectorListSchema.parse(await request('/api/v1/connectors')).items

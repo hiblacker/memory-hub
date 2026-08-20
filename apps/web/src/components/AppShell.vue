@@ -18,13 +18,14 @@ import {
   NTag,
 } from 'naive-ui'
 import { useQuery } from '@tanstack/vue-query'
+import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 
 import { getHomeSummary } from '../api'
 import { homeQueryKey, useLogoutMutation } from '../queries'
 
 defineProps<{
-  activeNav: 'inbox' | 'capture' | 'archives' | 'synced' | 'settings' | 'sources'
+  activeNav: 'inbox' | 'capture' | 'archives' | 'synced' | 'settings' | 'sources' | 'trash'
   title: string
   context: string
 }>()
@@ -34,6 +35,30 @@ const logoutMutation = useLogoutMutation()
 const homeQuery = useQuery({
   queryKey: homeQueryKey,
   queryFn: getHomeSummary,
+})
+
+const siyuanStatus = computed(() => homeQuery.data.value?.siyuan.status ?? 'unconfigured')
+const siyuanLabel = computed(() => {
+  switch (siyuanStatus.value) {
+    case 'connected':
+      return homeQuery.data.value?.siyuan.notebookName
+        ? `思源已连接 · ${homeQuery.data.value.siyuan.notebookName}`
+        : '思源已连接'
+    case 'failed':
+      return '思源连接失败'
+    default:
+      return '思源待配置'
+  }
+})
+const siyuanTagType = computed(() => {
+  switch (siyuanStatus.value) {
+    case 'connected':
+      return 'success' as const
+    case 'failed':
+      return 'error' as const
+    default:
+      return 'warning' as const
+  }
 })
 
 async function signOut() {
@@ -91,6 +116,20 @@ async function signOut() {
             <BookOpenCheck :size="17" aria-hidden="true" />
             <span>已同步记忆</span>
           </RouterLink>
+          <RouterLink
+            class="nav-item"
+            :class="{ active: activeNav === 'trash' }"
+            to="/trash"
+          >
+            <Inbox :size="17" aria-hidden="true" />
+            <span>回收站</span>
+            <em
+              v-if="(homeQuery.data.value?.counts.trashedMemories ?? 0) > 0"
+              class="nav-count"
+            >
+              {{ homeQuery.data.value?.counts.trashedMemories }}
+            </em>
+          </RouterLink>
 
           <p class="nav-section">配置</p>
                     <RouterLink
@@ -133,9 +172,15 @@ async function signOut() {
         </div>
         <div class="header-actions">
           <slot name="header-actions" />
-          <NTag size="small" type="warning" :bordered="false">
+          <NTag
+            size="small"
+            :type="siyuanTagType"
+            :bordered="false"
+            style="cursor: pointer"
+            @click="router.push('/settings/siyuan')"
+          >
             <template #icon><BookOpenCheck :size="14" /></template>
-            思源待配置
+            {{ siyuanLabel }}
           </NTag>
           <NButton
             quaternary

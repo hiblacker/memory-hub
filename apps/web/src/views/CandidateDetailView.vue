@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ArrowLeft, Check, Save, X } from 'lucide-vue-next'
+import { ArrowLeft, Check, Save, Trash2, X } from 'lucide-vue-next'
 import {
   NAlert,
   NButton,
@@ -7,6 +7,7 @@ import {
   NFormItem,
   NInput,
   NSelect,
+  NModal,
   NSpin,
   NTag,
   useDialog,
@@ -24,7 +25,7 @@ import { useRoute, useRouter } from 'vue-router'
 
 import AppShell from '../components/AppShell.vue'
 import MemoryMarkdownEditor from '../components/MemoryMarkdownEditor.vue'
-import { getCandidate, listCandidateDeliveries, retryDelivery } from '../api'
+import { getCandidate, listCandidateDeliveries, retryDelivery, trashCandidate } from '../api'
 import {
   candidateQueryKey,
   homeQueryKey,
@@ -45,6 +46,17 @@ const candidateQuery = useQuery({
   queryKey: computed(() => candidateQueryKey(candidateId.value)),
   queryFn: () => getCandidate(candidateId.value),
   enabled: computed(() => candidateId.value.length > 0),
+})
+
+const showDeliveriesModal = ref(false)
+const latestDelivery = computed(() => deliveriesQuery.data.value?.[0] ?? null)
+
+const trashMutation = useMutation({
+  mutationFn: trashCandidate,
+  onSuccess: async () => {
+    await queryClient.invalidateQueries({ queryKey: homeQueryKey })
+    await router.push('/trash')
+  },
 })
 
 const deliveriesQuery = useQuery({
@@ -110,6 +122,7 @@ const statusLabels: Record<CandidateStatus, string> = {
   synced: '已同步',
   rejected: '已拒绝',
   conflict: '冲突',
+  trashed: '回收站',
 }
 
 const sensitivityLabels: Record<Sensitivity, string> = {
@@ -193,6 +206,24 @@ function confirmApprove() {
     onPositiveClick: async () => {
       await approveMutation.mutateAsync(candidateId.value)
       message.success('已加入同步队列', { duration: 2000 })
+    },
+  })
+}
+
+function confirmTrash() {
+  const candidate = candidateQuery.data.value
+  if (!candidate || trashMutation.isPending.value) return
+  dialog.error({
+    title: '移入回收站？',
+    content:
+      candidate.status === 'synced'
+        ? '记忆将进入回收站，并排队删除对应的思源文档。可在回收站恢复，恢复后需重新同步。'
+        : '记忆将进入回收站，可稍后恢复或彻底删除。',
+    positiveText: '移入回收站',
+    negativeText: '取消',
+    onPositiveClick: async () => {
+      await trashMutation.mutateAsync(candidateId.value)
+      message.success('已移入回收站', { duration: 2000 })
     },
   })
 }
@@ -352,8 +383,43 @@ function confirmReject() {
             </div>
           </NForm>
 
-          <div v-if="deliveriesQuery.data.value?.length" class="delivery-panel">
-            <strong>同步记录</strong>
+          <div v-if="latestDelivery" class="delivery-panel">
+            <div class="delivery-panel-head">
+              <strong>同步记录</strong>
+              <NButton
+                v-if="(deliveriesQuery.data.value?.length ?? 0) > 1"
+                size="tiny"
+                quaternary
+                @click="showDeliveriesModal = true"
+              >
+                查看全部（{{ deliveriesQuery.data.value?.length }}）
+              </NButton>
+            </div>
+            <div class="delivery-row">
+              <div>
+                <div>状态：{{ latestDelivery.status }} · 尝试 {{ latestDelivery.attemptCount }} 次</div>
+                <div v-if="latestDelivery.documentId">文档：{{ latestDelivery.documentId }}</div>
+                <div v-if="latestDelivery.path">路径：{{ latestDelivery.path }}</div>
+                <div v-if="latestDelivery.lastErrorMessage" class="text-danger">
+                  {{ latestDelivery.lastErrorCode }}: {{ latestDelivery.lastErrorMessage }}
+                </div>
+              </div>
+              <NButton
+                v-if="latestDelivery.status === 'dead_letter' || latestDelivery.status === 'blocked' || latestDelivery.status === 'retrying'"
+                size="small"
+                :loading="retryMutation.isPending.value"
+                @click="retryMutation.mutate(latestDelivery.id)"
+              >
+                重试
+              </NButton>
+            </div>
+          </div>
+          <NModal
+            v-model:show="showDeliveriesModal"
+            preset="card"
+            title="全部同步记录"
+            style="width: min(720px, 92vw)"
+          >
             <div
               v-for="item in deliveriesQuery.data.value"
               :key="item.id"
@@ -362,7 +428,7 @@ function confirmReject() {
               <div>
                 <div>状态：{{ item.status }} · 尝试 {{ item.attemptCount }} 次</div>
                 <div v-if="item.documentId">文档：{{ item.documentId }}</div>
-                <div v-if="item.blockId">块：{{ item.blockId }}</div>
+                <div v-if="item.path">路径：{{ item.path }}</div>
                 <div v-if="item.lastErrorMessage" class="text-danger">
                   {{ item.lastErrorCode }}: {{ item.lastErrorMessage }}
                 </div>
@@ -376,7 +442,7 @@ function confirmReject() {
                 重试
               </NButton>
             </div>
-          </div>
+          </NModal>
 
           <div class="detail-md-wrap">
             <MemoryMarkdownEditor
@@ -401,6 +467,16 @@ function confirmReject() {
         <div class="detail-actions">
           <div class="detail-actions-left">
             <NButton @click="router.push('/inbox')">返回列表</NButton>
+            <NButton
+              v-if="candidateQuery.data.value && candidateQuery.data.value.status !== 'trashed'"
+              tertiary
+              type="error"
+              :loading="trashMutation.isPending.value"
+              @click="confirmTrash"
+            >
+              <template #icon><Trash2 :size="16" /></template>
+              删除
+            </NButton>
           </div>
           <div class="detail-actions-primary">
             <template v-if="candidateQuery.data.value && isPending">

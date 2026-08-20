@@ -2,6 +2,7 @@ import cookie from '@fastify/cookie'
 import cors from '@fastify/cors'
 import {
   CandidateListSchema,
+  CandidateListQuerySchema,
   CandidateSummarySchema,
   CreateCandidateRequestSchema,
   HomeSummarySchema,
@@ -139,6 +140,48 @@ function toDelivery(record: ArchiveDeliveryRecord) {
   }
 }
 
+function toListQuery(parsed: any, forcedStatuses?: string[]) {
+  return buildListQuery(parsed, forcedStatuses)
+}
+function buildListQuery(parsed: {
+  q?: string
+  status?: string
+  type?: string
+  source?: string
+  project?: string
+  from?: string
+  to?: string
+  sort: 'updated_at_desc' | 'updated_at_asc' | 'capture_time_desc'
+  page: number
+  pageSize: number
+}, forcedStatuses?: string[]) {
+  const query: {
+    q?: string
+    statuses?: string[]
+    types?: string[]
+    source?: string
+    project?: string
+    from?: Date
+    to?: Date
+    sort: 'updated_at_desc' | 'updated_at_asc' | 'capture_time_desc'
+    page: number
+    pageSize: number
+  } = {
+    sort: parsed.sort,
+    page: parsed.page,
+    pageSize: parsed.pageSize,
+  }
+  if (parsed.q) query.q = parsed.q
+  if (forcedStatuses) query.statuses = forcedStatuses
+  else if (parsed.status) query.statuses = parsed.status.split(',').filter(Boolean)
+  if (parsed.type) query.types = parsed.type.split(',').filter(Boolean)
+  if (parsed.source) query.source = parsed.source
+  if (parsed.project) query.project = parsed.project
+  if (parsed.from) query.from = new Date(parsed.from)
+  if (parsed.to) query.to = new Date(parsed.to)
+  return query
+}
+
 function tokenConfigured(): boolean {
   return Boolean(
     process.env.SIYUAN_TOKEN?.trim() || process.env.SIYUAN_TOKEN_FILE?.trim(),
@@ -273,7 +316,36 @@ export function buildApp({
     )
     if (!user) return reply.status(401).send(authError)
     const counts = await authStore.getHomeCounts()
-    return reply.send(HomeSummarySchema.parse({ user, counts }))
+    const target = await authStore.getDefaultArchiveTarget()
+    const siyuan = (() => {
+      if (!tokenConfigured() || !target?.notebookId) {
+        return {
+          status: 'unconfigured' as const,
+          notebookName: target?.notebookName ?? null,
+          lastTestedAt: target?.lastTestedAt?.toISOString() ?? null,
+        }
+      }
+      if (target.lastTestStatus === 'succeeded') {
+        return {
+          status: 'connected' as const,
+          notebookName: target.notebookName,
+          lastTestedAt: target.lastTestedAt?.toISOString() ?? null,
+        }
+      }
+      if (target.lastTestStatus === 'failed') {
+        return {
+          status: 'failed' as const,
+          notebookName: target.notebookName,
+          lastTestedAt: target.lastTestedAt?.toISOString() ?? null,
+        }
+      }
+      return {
+        status: 'unconfigured' as const,
+        notebookName: target.notebookName,
+        lastTestedAt: target.lastTestedAt?.toISOString() ?? null,
+      }
+    })()
+    return reply.send(HomeSummarySchema.parse({ user, counts, siyuan }))
   })
 
   app.get('/api/v1/candidates', async (request, reply) => {
@@ -282,8 +354,21 @@ export function buildApp({
       request.cookies[SESSION_COOKIE_NAME],
     )
     if (!user) return reply.status(401).send(authError)
-    const items = (await authStore.listCandidates()).map(toCandidateSummary)
-    return reply.send(CandidateListSchema.parse({ items }))
+    const parsed = CandidateListQuerySchema.safeParse(request.query ?? {})
+    if (!parsed.success) {
+      return reply.status(400).send({
+        error: { code: 'VALIDATION_ERROR', message: '列表筛选参数无效。' },
+      })
+    }
+    const result = await authStore.listCandidates(toListQuery(parsed.data))
+    return reply.send(
+      CandidateListSchema.parse({
+        items: result.items.map(toCandidateSummary),
+        page: result.page,
+        pageSize: result.pageSize,
+        total: result.total,
+      }),
+    )
   })
 
   app.get('/api/v1/candidates/:candidateId', async (request, reply) => {
@@ -671,16 +756,76 @@ export function buildApp({
     },
   )
 
+  app.post('/api/v1/candidates/:candidateId/trash', async (request, reply) => {
+    const user = await resolveSessionUser(
+      authStore,
+      request.cookies[SESSION_COOKIE_NAME],
+    )
+    if (!user) return reply.status(401).send(authError)
+    const { candidateId } = request.params as { candidateId: string }
+    const result = await authStore.trashCandidate(candidateId)
+    if (!result.ok) {
+      const error = mutationError(result)
+      return reply.status(error.status).send(error.body)
+    }
+    return reply.send(toCandidateSummary(result.candidate))
+  })
+
+  app.post('/api/v1/candidates/:candidateId/restore', async (request, reply) => {
+    const user = await resolveSessionUser(
+      authStore,
+      request.cookies[SESSION_COOKIE_NAME],
+    )
+    if (!user) return reply.status(401).send(authError)
+    const { candidateId } = request.params as { candidateId: string }
+    const result = await authStore.restoreCandidate(candidateId)
+    if (!result.ok) {
+      const error = mutationError(result)
+      return reply.status(error.status).send(error.body)
+    }
+    return reply.send(toCandidateSummary(result.candidate))
+  })
+
+  app.post('/api/v1/candidates/:candidateId/destroy', async (request, reply) => {
+    const user = await resolveSessionUser(
+      authStore,
+      request.cookies[SESSION_COOKIE_NAME],
+    )
+    if (!user) return reply.status(401).send(authError)
+    const { candidateId } = request.params as { candidateId: string }
+    const result = await authStore.destroyCandidate(candidateId)
+    if (!result.ok) {
+      const error = mutationError(result)
+      return reply.status(error.status).send(error.body)
+    }
+    return reply.status(204).send()
+  })
+
+  app.get('/api/v1/trash', async (request, reply) => {
+    const user = await resolveSessionUser(
+      authStore,
+      request.cookies[SESSION_COOKIE_NAME],
+    )
+    if (!user) return reply.status(401).send(authError)
+    const items = (await authStore.listTrashedCandidates()).map(toCandidateSummary)
+    return reply.send(CandidateListSchema.parse({ items, page: 1, pageSize: items.length || 20, total: items.length }))
+  })
+
   app.get('/api/v1/archives', async (request, reply) => {
     const user = await resolveSessionUser(
       authStore,
       request.cookies[SESSION_COOKIE_NAME],
     )
     if (!user) return reply.status(401).send(authError)
-    const items = (await authStore.listSyncedCandidates()).map(
-      toCandidateSummary,
+    const result = await authStore.listCandidates({ statuses: ['synced'] })
+    return reply.send(
+      CandidateListSchema.parse({
+        items: result.items.map(toCandidateSummary),
+        page: result.page,
+        pageSize: result.pageSize,
+        total: result.total,
+      }),
     )
-    return reply.send(CandidateListSchema.parse({ items }))
   })
 
   app.get('/api/v1/synced', async (request, reply) => {
@@ -689,10 +834,21 @@ export function buildApp({
       request.cookies[SESSION_COOKIE_NAME],
     )
     if (!user) return reply.status(401).send(authError)
-    const items = (await authStore.listSyncedCandidates()).map(
-      toCandidateSummary,
+    const parsed = CandidateListQuerySchema.safeParse(request.query ?? {})
+    if (!parsed.success) {
+      return reply.status(400).send({
+        error: { code: 'VALIDATION_ERROR', message: '列表筛选参数无效。' },
+      })
+    }
+    const result = await authStore.listCandidates(toListQuery(parsed.data, ['synced']))
+    return reply.send(
+      CandidateListSchema.parse({
+        items: result.items.map(toCandidateSummary),
+        page: result.page,
+        pageSize: result.pageSize,
+        total: result.total,
+      }),
     )
-    return reply.send(CandidateListSchema.parse({ items }))
   })
 
   app.setErrorHandler((error, _request, reply) => {

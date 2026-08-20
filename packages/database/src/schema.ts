@@ -48,6 +48,10 @@ export const memoryCandidates = pgTable('memory_candidates', {
   sourceEventId: text('source_event_id'),
   duplicateOfId: text('duplicate_of_id'),
   currentVersionId: text('current_version_id'),
+  deletedAt: timestamp('deleted_at', { withTimezone: true }),
+  deletedFromStatus: text('deleted_from_status'),
+  purgeStatus: text('purge_status'),
+  purgeError: text('purge_error'),
   captureTime: timestamp('capture_time', { withTimezone: true }).notNull(),
   createdAt: timestamp('created_at', { withTimezone: true })
     .notNull()

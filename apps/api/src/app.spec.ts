@@ -75,13 +75,19 @@ describe('MemoryHub API', () => {
       cookies: { memoryhub_session: cookie?.value ?? '' },
     })
     expect(home.statusCode).toBe(200)
-    expect(home.json()).toEqual({
+    expect(home.json()).toMatchObject({
       user: { id: 'usr_local_admin', username: 'admin' },
       counts: {
         pendingCandidates: 0,
         queuedDeliveries: 0,
         syncedMemories: 0,
+        trashedMemories: 0,
       },
+    })
+    expect(home.json().siyuan).toEqual({
+      status: 'unconfigured',
+      notebookName: 'Dev Notebook',
+      lastTestedAt: expect.any(String),
     })
 
     const logout = await app.inject({
@@ -145,6 +151,7 @@ describe('MemoryHub API', () => {
       cookies: { memoryhub_session: cookie },
     })
     expect(list.statusCode).toBe(200)
+    expect(list.json().total).toBeGreaterThanOrEqual(1)
     expect(list.json().items.length).toBeGreaterThanOrEqual(1)
     expect(
       list.json().items.some(
@@ -254,6 +261,41 @@ describe('MemoryHub API', () => {
     })
     expect(response.statusCode).toBe(404)
     expect(response.json().error.code).toBe('CANDIDATE_NOT_FOUND')
+  })
+
+  it('可将候选移入回收站并恢复', async () => {
+    const cookie = await loginCookie()
+    const created = await app.inject({
+      method: 'POST',
+      url: '/api/v1/candidates',
+      cookies: { memoryhub_session: cookie },
+      payload: {
+        title: '待删除记忆',
+        body: '用于回收站测试',
+        memoryType: 'todo',
+      },
+    })
+    const id = created.json().id as string
+    const trashed = await app.inject({
+      method: 'POST',
+      url: `/api/v1/candidates/${id}/trash`,
+      cookies: { memoryhub_session: cookie },
+    })
+    expect(trashed.statusCode).toBe(200)
+    expect(trashed.json().status).toBe('trashed')
+    const bin = await app.inject({
+      method: 'GET',
+      url: '/api/v1/trash',
+      cookies: { memoryhub_session: cookie },
+    })
+    expect(bin.json().items.some((item: { id: string }) => item.id === id)).toBe(true)
+    const restored = await app.inject({
+      method: 'POST',
+      url: `/api/v1/candidates/${id}/restore`,
+      cookies: { memoryhub_session: cookie },
+    })
+    expect(restored.statusCode).toBe(200)
+    expect(restored.json().status).toBe('pending')
   })
 
   it('拒绝无效的候选输入', async () => {

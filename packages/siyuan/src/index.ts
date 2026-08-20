@@ -203,6 +203,15 @@ export class SiyuanClient {
     })
   }
 
+  async removeDocById(id: string): Promise<void> {
+    try {
+      await this.request('/api/filetree/removeDocByID', { id })
+    } catch (error) {
+      if (isMissingSiyuanDocument(error)) return
+      throw error
+    }
+  }
+
   async renameDocById(input: { id: string; title: string }): Promise<void> {
     await this.request('/api/filetree/renameDocByID', {
       id: input.id,

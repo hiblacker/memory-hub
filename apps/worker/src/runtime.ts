@@ -1,4 +1,4 @@
-import { createDatabase, OUTBOX_TOPIC_ARCHIVE_DELIVERY, OUTBOX_TOPIC_SIYUAN_TEST, OUTBOX_TOPIC_PROCESS_SOURCE_EVENT, type AuthStore } from '@memory-hub/database'
+import { createDatabase, OUTBOX_TOPIC_ARCHIVE_DELIVERY, OUTBOX_TOPIC_SIYUAN_TEST, OUTBOX_TOPIC_PROCESS_SOURCE_EVENT, OUTBOX_TOPIC_SIYUAN_PURGE, type AuthStore } from '@memory-hub/database'
 import { assertArchivable, executeSiyuanArchive } from '@memory-hub/core'
 import {
   loadSiyuanToken,
@@ -11,6 +11,7 @@ import PgBoss from 'pg-boss'
 const QUEUE_ARCHIVE = 'archive-delivery'
 const QUEUE_SIYUAN_TEST = 'siyuan-test'
 const QUEUE_SOURCE_EVENT = 'source-event-process'
+const QUEUE_SIYUAN_PURGE = 'siyuan-purge'
 const MAX_ATTEMPTS = 5
 
 function loadDatabaseUrl(): string {
@@ -149,6 +150,33 @@ export async function processArchiveDelivery(
   }
 }
 
+export async function processSiyuanPurge(
+  store: AuthStore,
+  candidateId: string,
+  documentIds: string[],
+): Promise<void> {
+  const target = await store.getDefaultArchiveTarget()
+  if (!target) {
+    await store.markPurgeResult(candidateId, {
+      status: 'failed',
+      error: '未配置思源目标。',
+    })
+    return
+  }
+  try {
+    const client = createClientForTarget(target)
+    for (const documentId of documentIds) {
+      await client.removeDocById(documentId)
+    }
+    await store.markPurgeResult(candidateId, { status: 'succeeded' })
+    console.info(`[worker] purged ${documentIds.length} siyuan docs for ${candidateId}`)
+  } catch (error) {
+    const message = error instanceof Error ? error.message : '删除思源文档失败'
+    await store.markPurgeResult(candidateId, { status: 'failed', error: message })
+    console.error(`[worker] purge failed ${candidateId}: ${message}`)
+  }
+}
+
 export async function processSiyuanTest(
   store: AuthStore,
   targetId: string,
@@ -256,6 +284,7 @@ export async function startWorker() {
   await boss.createQueue(QUEUE_ARCHIVE)
   await boss.createQueue(QUEUE_SIYUAN_TEST)
   await boss.createQueue(QUEUE_SOURCE_EVENT)
+  await boss.createQueue(QUEUE_SIYUAN_PURGE)
 
   await boss.work(QUEUE_ARCHIVE, async (jobs) => {
     for (const job of jobs) {
@@ -270,6 +299,17 @@ export async function startWorker() {
       const eventId = String((job.data as { eventId?: string }).eventId ?? '')
       if (!eventId) continue
       await processSourceEventJob(store, eventId)
+    }
+  })
+
+  await boss.work(QUEUE_SIYUAN_PURGE, async (jobs) => {
+    for (const job of jobs) {
+      const candidateId = String((job.data as { candidateId?: string }).candidateId ?? '')
+      const documentIds = Array.isArray((job.data as { documentIds?: string[] }).documentIds)
+        ? (job.data as { documentIds: string[] }).documentIds
+        : []
+      if (!candidateId) continue
+      await processSiyuanPurge(store, candidateId, documentIds)
     }
   })
 

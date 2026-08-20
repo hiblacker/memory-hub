@@ -9,7 +9,7 @@ import AppShell from '../components/AppShell.vue'
 const router = useRouter()
 const syncedQuery = useQuery({
   queryKey: ['synced'],
-  queryFn: listSyncedMemories,
+  queryFn: () => listSyncedMemories(),
 })
 
 const typeLabels: Record<string, string> = {
