@@ -18,32 +18,25 @@ const homeQuery = useQuery({
 
 <template>
   <AppShell active-nav="inbox" title="候选收件箱" context="默认工作区">
-    <div class="page-heading">
-      <div>
-        <h1>候选收件箱</h1>
-        <p>集中审核、整理并同步长期记忆候选。</p>
+    <section class="inbox-toolbar" aria-label="队列摘要">
+      <div class="queue-summary compact">
+        <div>
+          <span>待审核</span>
+          <strong>{{ homeQuery.data.value?.counts.pendingCandidates ?? 0 }}</strong>
+        </div>
+        <div>
+          <span>排队中</span>
+          <strong>{{ homeQuery.data.value?.counts.queuedDeliveries ?? 0 }}</strong>
+        </div>
+        <div>
+          <span>已同步</span>
+          <strong>{{ homeQuery.data.value?.counts.syncedMemories ?? 0 }}</strong>
+        </div>
       </div>
-      <div class="page-actions">
-        <NButton type="primary" @click="router.push('/capture')">
-          <template #icon><CirclePlus :size="17" /></template>
-          新建候选
-        </NButton>
-      </div>
-    </div>
-
-    <section class="queue-summary" aria-label="队列摘要">
-      <div>
-        <span>待审核</span>
-        <strong>{{ homeQuery.data.value?.counts.pendingCandidates ?? 0 }}</strong>
-      </div>
-      <div>
-        <span>排队中</span>
-        <strong>{{ homeQuery.data.value?.counts.queuedDeliveries ?? 0 }}</strong>
-      </div>
-      <div>
-        <span>已同步</span>
-        <strong>{{ homeQuery.data.value?.counts.syncedMemories ?? 0 }}</strong>
-      </div>
+      <NButton type="primary" @click="router.push('/capture')">
+        <template #icon><CirclePlus :size="17" /></template>
+        新建候选
+      </NButton>
     </section>
 
     <section class="inbox-surface" aria-label="候选记忆列表">

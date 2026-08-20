@@ -239,13 +239,34 @@
   margin-bottom: 16px;
 }
 
+.inbox-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.inbox-toolbar > .n-button {
+  flex: none;
+}
+
 .queue-summary {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
+  flex: 1 1 auto;
+  min-width: 0;
   border: 1px solid var(--mh-border);
   border-radius: 7px;
   background: var(--mh-surface);
   margin-bottom: 16px;
+}
+
+.queue-summary.compact {
+  margin-bottom: 0;
+}
+
+.queue-summary.compact div {
+  padding: 10px 16px;
 }
 
 .queue-summary div {
@@ -335,6 +356,11 @@
 
   .page-heading {
     flex-direction: column;
+  }
+
+  .inbox-toolbar {
+    flex-direction: column;
+    align-items: stretch;
   }
 
   .queue-summary {
