@@ -1,151 +1,102 @@
-# ChatGPT 会话级长期记忆与项目聚合
+# ChatGPT 记忆保存：规则命中后入库，经 MCP / Skill / Agent 接入
 
 状态：**待确认**  
-版本：`chatgpt-session-v1`  
-日期：2026-08-20  
-关联：[产品设计](02-product-design.md)、[集成设计](05-integrations.md)、[修订与同步](14-memory-revision-and-version-history.md)
+版本：`chatgpt-mcp-v2`  
+日期：2026-08-20
 
-目标：ChatGPT 产生的**长期记忆按会话保存**，**项目相关记忆按项目聚合**。先确认本方案，再写代码。
+本方案替换 `chatgpt-session-v1`。确认后再开发接入；手动录入 UI 按你的要求删除。
 
-## 1. 边界（必须遵守）
+## 先回答两个概念
 
-「自动保存」指：**用户明确提交一次会话之后**，MemoryHub 自动完成抽取、去重、入库和（按规则）同步，无需对会话里每条消息再点一次保存。
+**「无 LLM」**  
+之前那版的意思是：MemoryHub **可以不接大模型**，关掉模型时仍能人工改记忆、同步思源。  
+不是「ChatGPT 没有模型」。  
+在本方案里：抽取发生在 **Agent 侧**（ChatGPT / Codex / Claude 自己就是模型）。MemoryHub 服务端默认 **不需要再调一次 LLM** 才能决定是否入库；它只做规则匹配、去重、脱敏、同步。
 
-不包含、也不会做：
+**「导入官方导出」**  
+指 ChatGPT 账号设置里「导出数据」得到的 `conversations.json` 整包导入。  
+你要求以软件 + Skill/Agent/MCP 为主，**本方案取消官方导出导入，也不做浏览器扩展。**
 
-- 监听 ChatGPT 网页、后台抓取 DOM、读取隐藏 Memory
-- 调用未公开的 `backend-api` / 私有接口
-- 在用户不知情时上传对话
+## 1. 目标
 
-V1 仍只走两条入口：
+- 长期记忆按**会话**沉淀，但 **不是每个会话都入库**。
+- 只有命中你在 MemoryHub 里配置的规则，才写入数据库并（按规则）同步思源。
+- 项目记忆按 **project** 聚合到同一目录。
+- 接入面是 MemoryHub 提供的 **MCP Server + Skill**，由 Agent 在对话结束时调用；不是爬 ChatGPT 网页。
 
-1. **官方导出导入**：`conversations.json`，按会话勾选后导入。
-2. **扩展显式保存**：用户在 ChatGPT 页点击「保存本会话」；扩展只提交当前会话中用户可见、已勾选的消息。
+## 2. 什么会入库，什么不会
 
-两条入口都变成同一类 `SourceEvent`，后续处理相同。
+Agent 把「本会话候选记忆」交给 MemoryHub（一次调用可带 1..N 条结构化记忆，附带 conversationId）。
 
-## 2. 期望效果
-
-| 记忆性质 | 聚合单位 | 思源中的形态 | 例子 |
-| --- | --- | --- | --- |
-| 长期记忆（永久事实、偏好、稳定决策） | **会话** | 每个 ChatGPT 会话一篇（或一夹） | 「和 GPT 讨论技术栈的那次聊天」→ 一篇长期记忆 |
-| 项目记忆（项目上下文、项目决策、项目待办） | **项目** | 同一 `project` 下多条记忆进同一项目目录 | 项目 `memory-hub` 的约束、选型、环境集中在一起 |
-
-同一段对话可以同时产出两类结果：会话级长期摘要 + 若干项目条目。项目条目带 `project`，长期条目可以不带项目或只在正文里提及。
-
-## 3. 数据单位
-
-### 3.1 会话
-
-- `externalConversationId` = ChatGPT conversation id（导出文件或扩展读取的公开会话 id）。
-- 一次导入/一次「保存本会话」= 对该会话的一次快照。
-- 幂等键：`connector + conversationId + snapshotId`。
-  - 导出：`externalEventId = conversation.mapping 的更新时间或 hash`。
-  - 扩展：`externalEventId = sha256(会话可见文本)`，同一会话重复点保存不重复建候选。
-- 同一会话再次保存且内容变化：更新该会话对应的长期记忆（新版本），不新增平行文档。
-
-### 3.2 项目
-
-- 项目名来自：导入时用户填写、扩展弹窗选择/输入、或正文里可解析的仓库/项目名。
-- 无法判断项目时，**不进项目聚合**，只进会话长期记忆（若像长期偏好/事实）或进入收件箱待审核。
-- 思源侧同一项目共用目录，不按会话拆夹。
-
-## 4. 抽取结果
-
-对每个已提交会话，Worker 产出 1..N 条候选：
-
-| 产出 | memoryType | 标题规则 | 同步路径（默认） |
-| --- | --- | --- | --- |
-| 会话长期记忆（固定 1 条） | `preference` 或 `permanent_fact` 或 `decision`（按内容） | `GPT会话 · {会话标题}` | `/MemoryHub/长期记忆/会话/{会话标题}` |
-| 项目条目（0..N） | `project_context` / `decision` / `todo` | 短标题，不含会话前缀 | `/MemoryHub/项目/{project}/{标题}` |
-
-没有 LLM 时：
-
-- 仍创建 **1 条会话级候选**，正文为会话可见文本的截断+结构（角色分段 Markdown），类型默认 `project_context`，一律进收件箱，不自动同步。
-- 用户可在详情里改类型、拆项目、再批准。
-
-有 LLM（后续 Provider）时：
-
-- `extractMemories` 从会话抽出长期要点和项目要点。
-- 高置信、非敏感、无冲突的 **永久事实/偏好** 可按规则自动同步到「长期记忆/会话」。
-- 项目条目默认仍审核，除非规则明确允许该项目自动同步。
-
-## 5. 思源目录
-
-替换目前仅按来源分组的单一模板，ChatGPT 同步使用两套路径：
+MemoryHub **先评规则，再决定是否落库**：
 
 ```text
-/MemoryHub/长期记忆/会话/{conversationTitle}
-/MemoryHub/项目/{project}/{title}
+MCP 调用
+  → 校验、脱敏
+  → 规则引擎（类型 / 项目 / 来源 / 关键词 / 置信度 / 敏感级）
+  → 未命中：不写 source_events、不写 candidates，返回 { accepted: false, matches: [] }
+  → 命中：才入库、去重、按规则同步或进收件箱
 ```
 
-手工录入、Claude Code 保持现有 `{group}/{title}`，或与项目目录对齐（确认时选一项）：
+未启用任何规则时：**全部拒绝入库**（避免「来了就存」）。需要至少一条启用规则，例如：
 
-- **推荐**：所有来源统一。有 `project` → 项目目录；无项目且类型为永久/偏好 → 长期记忆/会话或长期记忆/主题。
-- 备选：只改 ChatGPT，其它来源不动。
+- 长期：`memoryType in (permanent_fact, preference)` 且 `sensitivity = normal`
+- 项目：`project 非空` 且 `memoryType in (project_context, decision)`
 
-文档标题仍是记忆标题。同一会话再次同步 **update 原文档**，不新建。
+可提供 `dryRun: true`：只返回是否命中，不写库。
 
-## 6. 处理流水线
+## 3. 聚合与思源路径
 
-```text
-用户保存会话或导入 conversations.json
-  → POST /api/v1/events  (source=chatgpt_extension | chatgpt_export)
-  → 入库 source_events（幂等）
-  → Worker：脱敏 → 抽取（无模型则整会话一条）
-  → 会话级候选：canonical_key = chatgpt:{conversationId}:session
-  → 项目候选：canonical_key = project:{project}:{title}
-  → 已存在且哈希相同：标记 duplicate，不建新候选
-  → 已存在且哈希不同：对该候选进入修订（pending 新工作副本或直接新版本，沿用修订设计）
-  → 规则引擎（尚未实现前全部进收件箱）
-  → 批准/自动规则 → 按上表路径同步思源
-```
+| 命中类型 | 聚合 | 路径 | 文档 |
+| --- | --- | --- | --- |
+| 永久事实 / 偏好 等长期记忆 | 会话 | `/MemoryHub/长期记忆/会话/{conversationTitle}` | 同一 `conversationId` 更新同一篇 |
+| 项目上下文 / 项目决策 / 项目待办 | 项目 | `/MemoryHub/项目/{project}/{title}` | 同项目同标题走修订，不新建平行文档 |
 
-扩展点一次「保存本会话」只发 **一个** SourceEvent（整会话），不在扩展里逐条消息打接口。
+没有项目名的条目不能进项目目录；若也不命中长期规则，则丢弃。
 
-## 7. 产品交互
+## 4. 软件接入（MCP / Skill / Agent）
 
-### 导入
+MemoryHub 作为本机/NAS 上的服务，对外提供 MCP（可同时给 ChatGPT、Codex、Claude Code 用）。
 
-`/settings/connectors` 或导入页：上传 `conversations.json` → 列出会话（标题、时间、消息数）→ 多选 → 可选统一填写默认项目名 → 导入。  
-每个选中会话一个事件。进度和失败在导入结果里可见。
+建议工具：
 
-### 扩展（后做安装包）
-
-ChatGPT 网页工具栏按钮「保存到 MemoryHub」：
-
-- 弹出：会话标题、可选项目名、是否同时抽取项目条目。
-- 用户确认后 POST 事件。
-- 失败只提示，不影响 ChatGPT 使用。
-
-### MemoryHub 内
-
-收件箱增加来源筛选 `chatgpt_export` / `chatgpt_extension`。  
-已同步列表按路径能看出「长期记忆/会话」和「项目/xxx」。
-
-## 8. 不做的自动
-
-| 说法 | 本方案中的含义 |
+| 工具 | 作用 |
 | --- | --- |
-| 会话级自动保存 | 用户提交整段会话后，系统自动抽取+去重+（规则允许时）同步 |
-| 打开 ChatGPT 就自动上传 | **不做** |
-| 自动读 ChatGPT Memory 面板 | **不做** |
+| `memoryhub.evaluate_memories` | 干跑：这些候选会不会入库 |
+| `memoryhub.save_memories` | 真正提交；仅保存命中规则的条目 |
+| `memoryhub.list_rules` | 让 Agent 知道当前规则，避免乱提交 |
 
-## 9. 开发顺序（确认后）
+Skill（例如 Codex `SKILL.md` / Claude Skill）：
 
-1. **导入会话**：解析官方 `conversations.json`，一会话一事件，生成会话级候选。
-2. **路径规则**：同步时按「有项目 → 项目目录，否则 → 长期记忆/会话」写思源。
-3. **同一会话更新**：重复导入/保存走修订，更新原思源文档。
-4. **导入预览 UI**：选会话、填默认项目。
-5. **扩展显式保存**（可与 4 并行设计，实现放后）。
-6. **LLM 抽取项目条目**（依赖 Provider，可关）。
+- 何时调用：用户明确说「记住」「记到项目 X」，或会话结束且内容明显是长期偏好/项目决策。
+- 调用前在本地整理成结构化条目（标题、类型、项目、会话 id、正文）。
+- **不要**把整段闲聊塞进来；规则是第二道闸，Skill 是第一道闸。
+- 失败不得打断用户对话。
 
-第 1–3 即可达到「长期记忆按会话、项目按项目聚合」的主效果；4–5 降低操作成本；6 提高拆条质量。
+不提供浏览器扩展，不读 ChatGPT 隐藏 Memory。
 
-## 10. 待确认
+## 5. 和现有系统的关系
 
-- [ ] 接受「自动」= 用户提交会话后的自动处理，不是网页监听。
-- [ ] 长期记忆按 ChatGPT 会话一篇文档；项目记忆按 `project` 聚合到 `/MemoryHub/项目/{project}/`。
-- [ ] 无 LLM 时整会话先生成一条待审核候选。
-- [ ] 先做官方导出导入 + 路径规则 + 同会话更新；扩展和 LLM 抽取往后排。
-- [ ] 其它来源（手动、Claude）是否一并改用「项目目录 / 长期记忆」结构：推荐是。
+- 收件箱仍用于：命中规则但不够自动同步条件（例如要人审）的条目。
+- 已同步记忆、修订、回收站逻辑不变。
+- **删除手动录入页、导航和相关 UI。** 记忆只从 MCP/事件进入。`POST /api/v1/candidates` 可保留给测试，产品界面不再暴露。
+
+## 6. 开发顺序（确认后）
+
+1. 规则引擎最小闭环：声明式规则 CRUD + 试运行 + 启用。
+2. `save_memories` / `evaluate_memories`：规则未命中不落库。
+3. 同步路径：长期按会话文档，项目按项目目录；同会话/同项目标题更新原文档。
+4. MCP Server 接到 MemoryHub（stdio 或 HTTP）。
+5. 仓库内 Skill 文档（Codex / Claude 各一份）。
+6. ChatGPT 侧通过官方 MCP 客户端指向该 Server（不写扩展）。
+
+没有规则引擎，就无法做到「符合规则才入库」，所以规则要先于 MCP。
+
+## 7. 待确认
+
+- [ ] 未命中规则的会话/条目完全不入库。
+- [ ] 不接浏览器扩展、不接官方数据导出。
+- [ ] 入口是 MCP + Skill + Agent。
+- [ ] 服务端默认不再为入库去调一层 LLM。
+- [ ] 先做规则引擎，再做 MCP。
+- [ ] 手动录入 UI 删除（进行中）。

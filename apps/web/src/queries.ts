@@ -1,13 +1,11 @@
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
 import type {
-  CreateCandidateRequest,
   RejectCandidateRequest,
   UpdateCandidateRequest,
 } from '@memory-hub/contracts'
 
 import {
   approveCandidate,
-  createCandidate,
   login,
   logout,
   rejectCandidate,
@@ -37,19 +35,6 @@ export function useLogoutMutation() {
     mutationFn: logout,
     async onSuccess() {
       queryClient.removeQueries()
-    },
-  })
-}
-
-export function useCreateCandidateMutation() {
-  const queryClient = useQueryClient()
-  return useMutation({
-    mutationFn: (input: CreateCandidateRequest) => createCandidate(input),
-    async onSuccess() {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: candidatesQueryKey }),
-        queryClient.invalidateQueries({ queryKey: homeQueryKey }),
-      ])
     },
   })
 }

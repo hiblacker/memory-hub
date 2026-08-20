@@ -1,15 +1,12 @@
 <script setup lang="ts">
-import { CirclePlus, ShieldCheck } from 'lucide-vue-next'
-import { NButton } from 'naive-ui'
+import { ShieldCheck } from 'lucide-vue-next'
 import { useQuery } from '@tanstack/vue-query'
-import { useRouter } from 'vue-router'
 
 import AppShell from '../components/AppShell.vue'
 import MemoryListPanel from '../components/MemoryListPanel.vue'
 import { getHomeSummary, listCandidates } from '../api'
 import { homeQueryKey } from '../queries'
 
-const router = useRouter()
 const homeQuery = useQuery({
   queryKey: homeQueryKey,
   queryFn: getHomeSummary,
@@ -33,10 +30,6 @@ const homeQuery = useQuery({
           <strong>{{ homeQuery.data.value?.counts.syncedMemories ?? 0 }}</strong>
         </div>
       </div>
-      <NButton type="primary" @click="router.push('/capture')">
-        <template #icon><CirclePlus :size="17" /></template>
-        新建候选
-      </NButton>
     </section>
 
     <section class="inbox-surface" aria-label="候选记忆列表">

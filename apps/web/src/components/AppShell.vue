@@ -3,7 +3,6 @@ import {
   Bot,
   BookOpenCheck,
   ChevronDown,
-  CirclePlus,
   FileInput,
   Inbox,
   LogOut,
@@ -25,7 +24,7 @@ import { getHomeSummary } from '../api'
 import { homeQueryKey, useLogoutMutation } from '../queries'
 
 defineProps<{
-  activeNav: 'inbox' | 'capture' | 'archives' | 'synced' | 'settings' | 'sources' | 'trash'
+  activeNav: 'inbox' | 'archives' | 'synced' | 'settings' | 'sources' | 'trash'
   title: string
   context: string
 }>()
@@ -90,7 +89,7 @@ async function signOut() {
           <RouterLink
             class="nav-item"
             :class="{ active: activeNav === 'inbox' }"
-            to="/inbox">
+            to="/inbox"
           >
             <Inbox :size="17" aria-hidden="true" />
             <span>候选收件箱</span>
@@ -100,14 +99,6 @@ async function signOut() {
             >
               {{ homeQuery.data.value?.counts.pendingCandidates }}
             </em>
-          </RouterLink>
-          <RouterLink
-            class="nav-item"
-            :class="{ active: activeNav === 'capture' }"
-            to="/capture">
-          >
-            <CirclePlus :size="17" aria-hidden="true" />
-            <span>手动录入</span>
           </RouterLink>
                     <RouterLink
             class="nav-item"

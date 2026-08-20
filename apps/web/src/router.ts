@@ -4,7 +4,6 @@ import { createRouter, createWebHistory, createMemoryHistory } from 'vue-router'
 import { getCurrentUser } from './api'
 import { authQueryKey } from './queries'
 import { queryClient } from './query-client'
-import CaptureView from './views/CaptureView.vue'
 import SettingsView from './views/SettingsView.vue'
 import SyncedView from './views/ArchivesView.vue'
 import ConnectorsView from './views/ConnectorsView.vue'
@@ -32,12 +31,6 @@ export function createAppRouter(
         path: '/inbox/:candidateId',
         name: 'candidate-detail',
         component: CandidateDetailView,
-        meta: { requiresAuth: true },
-      },
-      {
-        path: '/capture',
-        name: 'capture',
-        component: CaptureView,
         meta: { requiresAuth: true },
       },
       {

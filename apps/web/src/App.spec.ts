@@ -144,64 +144,6 @@ describe('MemoryHub Web', () => {
     expect(showApiErrorToast).toHaveBeenCalledWith('用户名或密码错误。')
   })
 
-  it('可手动录入候选并返回收件箱', async () => {
-    let candidates = [] as (typeof demoCandidate)[]
-
-    const fetchMock = vi.fn(
-      async (input: RequestInfo | URL, init?: RequestInit) => {
-        const url = String(input)
-        if (url.endsWith('/api/v1/auth/me')) {
-          return jsonResponse({ user: { id: 'usr_admin', username: 'admin' } })
-        }
-        if (url.includes('/api/v1/home')) {
-          return jsonResponse({
-            user: { id: 'usr_admin', username: 'admin' },
-            counts: {
-              pendingCandidates: candidates.length,
-              queuedDeliveries: 0,
-              syncedMemories: 0,
-              trashedMemories: 0,
-            },
-          })
-        }
-        if (
-          url.includes('/api/v1/candidates') &&
-          !/\/api\/v1\/candidates\/[^?]+/.test(url) &&
-          (!init || !init.method || init.method === 'GET')
-        ) {
-          return jsonResponse({ items: candidates, page: 1, pageSize: 20, total: candidates.length })
-        }
-        if (url.includes('/api/v1/candidates') && !url.includes('/candidates/') && init?.method === 'POST') {
-          candidates = [demoCandidate]
-          return jsonResponse(demoCandidate, 201)
-        }
-        return jsonResponse({ error: { code: 'NOT_FOUND' } }, 404)
-      },
-    )
-    vi.stubGlobal('fetch', fetchMock)
-
-    const { wrapper, router } = await mountAt('/capture')
-    expect(wrapper.text()).toContain('手动录入候选记忆')
-
-    await wrapper
-      .get('input[placeholder="例如：偏好使用 TypeScript"]')
-      .setValue('偏好使用 TypeScript')
-    const editButtons = wrapper.findAll('button')
-    const editButton = editButtons.find((button) => button.text().includes('编辑'))
-    expect(editButton).toBeTruthy()
-    await editButton!.trigger('click')
-    await flushPromises()
-    await wrapper
-      .get('textarea[placeholder="使用 Markdown 编写记忆正文"]')
-      .setValue('长期技术栈偏好使用 TypeScript 与 Vue 3。')
-    await wrapper.get('form').trigger('submit')
-    await flushPromises()
-
-    expect(router.currentRoute.value.path).toBe('/inbox')
-    expect(wrapper.text()).toContain('偏好使用 TypeScript')
-    expect(wrapper.text()).toContain('待审核')
-  })
-
   it('可从收件箱进入候选详情', async () => {
     const fetchMock = vi.fn(
       async (input: RequestInfo | URL, init?: RequestInit) => {
