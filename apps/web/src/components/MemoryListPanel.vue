@@ -87,17 +87,17 @@ const typeOptions = Object.entries(memoryTypeLabels).map(([value, label]) => ({
 
 const listParams = computed(() => {
   const status =
-    typeof route.query.status === 'string'
+    typeof route.query.status === 'string' && route.query.status.trim()
       ? route.query.status
-      : props.defaultStatus
+      : undefined
   return {
     q: typeof route.query.q === 'string' ? route.query.q : undefined,
     status,
     type: typeof route.query.type === 'string' ? route.query.type : undefined,
     from: typeof route.query.from === 'string' ? route.query.from : undefined,
     to: typeof route.query.to === 'string' ? route.query.to : undefined,
-    page: Number(route.query.page ?? 1),
-    pageSize: Number(route.query.pageSize ?? 20),
+    page: Number(route.query.page ?? 1) || 1,
+    pageSize: Number(route.query.pageSize ?? 20) || 20,
   }
 })
 
@@ -128,32 +128,46 @@ const searchValue = computed({
 
 const selectedStatuses = computed({
   get: () => (listParams.value.status ?? '').split(',').filter(Boolean),
-  set: (value: string[]) =>
-    updateQuery({ status: value.join(',') || undefined, page: 1 }),
+  set: (value: Array<string | number> | null) =>
+    updateQuery({
+      status: value && value.length ? value.map(String).join(',') : undefined,
+      page: 1,
+    }),
 })
 
 const selectedTypes = computed({
   get: () => (listParams.value.type ?? '').split(',').filter(Boolean),
-  set: (value: string[]) =>
-    updateQuery({ type: value.join(',') || undefined, page: 1 }),
+  set: (value: Array<string | number> | null) =>
+    updateQuery({
+      type: value && value.length ? value.map(String).join(',') : undefined,
+      page: 1,
+    }),
 })
 
 const dateRange = computed<[number, number] | null>({
   get() {
     if (!listParams.value.from || !listParams.value.to) return null
-    return [
-      new Date(listParams.value.from).getTime(),
-      new Date(listParams.value.to).getTime(),
-    ]
+    const start = Date.parse(listParams.value.from)
+    const end = Date.parse(listParams.value.to)
+    if (!Number.isFinite(start) || !Number.isFinite(end)) return null
+    return [start, end]
   },
   set(value) {
-    if (!value) {
+    if (!value || value.length !== 2) {
       updateQuery({ from: undefined, to: undefined, page: 1 })
       return
     }
+    const start = new Date(value[0])
+    const end = new Date(value[1])
+    if (!Number.isFinite(start.getTime()) || !Number.isFinite(end.getTime())) {
+      updateQuery({ from: undefined, to: undefined, page: 1 })
+      return
+    }
+    start.setHours(0, 0, 0, 0)
+    end.setHours(23, 59, 59, 999)
     updateQuery({
-      from: new Date(value[0]).toISOString(),
-      to: new Date(value[1]).toISOString(),
+      from: start.toISOString(),
+      to: end.toISOString(),
       page: 1,
     })
   },

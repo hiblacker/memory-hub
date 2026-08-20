@@ -50,7 +50,6 @@ const homeQuery = useQuery({
       <MemoryListPanel
         query-key="inbox-list"
         :fetcher="listCandidates"
-        default-status="pending,queued,conflict"
         :actions="['delete']"
       />
     </section>
