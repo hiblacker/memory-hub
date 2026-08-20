@@ -1,0 +1,49 @@
+@import (reference) './tokens.less';
+@import (reference) './mixins.less';
+
+.settings-panel {
+  padding: 16px 18px 20px;
+}
+
+.settings-form {
+  max-width: 720px;
+}
+
+.settings-meta {
+  display: grid;
+  gap: 8px;
+  margin: 8px 0 16px;
+  color: var(--mh-muted);
+}
+
+.settings-meta .meta-k {
+  margin-right: 8px;
+  font-weight: 600;
+}
+
+.settings-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.delivery-panel {
+  margin-top: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--mh-border);
+  border-radius: 12px;
+  background: #fff;
+}
+
+.delivery-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 8px 0;
+  border-top: 1px dashed var(--mh-border);
+}
+
+.delivery-row:first-child {
+  border-top: 0;
+}

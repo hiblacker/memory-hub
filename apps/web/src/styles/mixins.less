@@ -1,0 +1,13 @@
+// Shared layout helpers. Keep mixins small and avoid generating unexpected selectors.
+
+.mh-flex-center() {
+  display: flex;
+  align-items: center;
+}
+
+.mh-sticky-chrome() {
+  position: sticky;
+  z-index: 30;
+  background: rgb(238 242 245 / 96%);
+  backdrop-filter: blur(10px);
+}

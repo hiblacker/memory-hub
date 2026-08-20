@@ -88,6 +88,7 @@ Do **not** implement "minimal", scaffold-only, placeholder, or intentionally inc
 - Use TanStack Vue Query for API data, loading state, retries, mutations, and cache invalidation. Do not copy server responses into Pinia.
 - Import Naive UI components where used. Keep application providers and theme overrides centralized.
 - Use theme tokens and semantic CSS variables instead of scattering hard-coded colors.
+- Web styles use Less. Global files live in `apps/web/src/styles/`; Vue SFC styles must set `lang="less"`. Do not add new `.css` files. Keep Less nesting to 3 levels or fewer.
 - The Web app must never receive or read SiYuan tokens, model keys, database credentials, or raw Docker secrets.
 - Render untrusted Markdown only after sanitization. User-controlled text must not become HTML, a route, or a CSS selector without validation.
 - Every data view must handle loading, empty, error, and retry states without changing the page layout unexpectedly.
