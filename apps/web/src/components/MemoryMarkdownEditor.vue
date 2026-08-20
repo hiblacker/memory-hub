@@ -259,7 +259,7 @@ function insertEmoji(emoji: string) {
           :value="modelValue"
           :disabled="isReadonly"
           :autosize="false"
-          :rows="1"
+          :rows="18"
           maxlength="20000"
           show-count
           placeholder="使用 Markdown 编写记忆正文"
