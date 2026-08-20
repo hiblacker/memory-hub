@@ -666,7 +666,7 @@ export function createDatabase(databaseUrl: string): AuthStore & {
               auth_header text NOT NULL DEFAULT 'Authorization',
               notebook_id text,
               notebook_name text,
-              path_template text NOT NULL DEFAULT '/MemoryHub/10 长期记忆/{type}',
+              path_template text NOT NULL DEFAULT '/MemoryHub/{group}/{title}',
               allowed_hosts text,
               last_test_status text,
               last_test_message text,
@@ -725,7 +725,7 @@ export function createDatabase(databaseUrl: string): AuthStore & {
               true,
               'http://192.168.1.10:1166',
               'Authorization',
-              '/MemoryHub/10 长期记忆/{type}',
+              '/MemoryHub/{group}/{title}',
               '192.168.1.10,127.0.0.1,localhost'
             ) ON CONFLICT (id) DO NOTHING;
 
@@ -1030,7 +1030,7 @@ export function createDatabase(databaseUrl: string): AuthStore & {
           notebookId: input.notebookId ?? null,
           notebookName: input.notebookName ?? null,
           pathTemplate:
-            input.pathTemplate ?? '/MemoryHub/10 长期记忆/{type}',
+            input.pathTemplate ?? '/MemoryHub/{group}/{title}',
           allowedHosts: input.allowedHosts ?? null,
           lastTestStatus: null,
           lastTestMessage: null,
@@ -1338,7 +1338,7 @@ export function createMemoryStore(): AuthStore {
     authHeader: 'Authorization',
     notebookId: 'notebook-dev',
     notebookName: 'Dev Notebook',
-    pathTemplate: '/MemoryHub/10 长期记忆/{type}',
+    pathTemplate: '/MemoryHub/{group}/{title}',
     allowedHosts: '192.168.1.10,127.0.0.1,localhost',
     lastTestStatus: 'succeeded',
     lastTestMessage: 'ok',

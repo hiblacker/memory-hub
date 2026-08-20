@@ -19,7 +19,7 @@ const form = ref({
   authHeader: 'Authorization',
   notebookId: '',
   notebookName: '',
-  pathTemplate: '/MemoryHub/10 长期记忆/{type}',
+  pathTemplate: '/MemoryHub/{group}/{title}',
   allowedHosts: '192.168.1.10,127.0.0.1,localhost',
 })
 

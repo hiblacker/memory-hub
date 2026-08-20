@@ -67,22 +67,47 @@ const typeEmoji: Record<MemoryType, string> = {
   sensitive: '🛡️',
 }
 
+
+const sourceGroups: Record<string, string> = {
+  manual: '手动归档',
+  claude_code: '对话保存',
+  chatgpt_export: '对话保存',
+  chatgpt_extension: '对话保存',
+  rest: '长期记忆',
+}
+
+export function resolveArchiveGroup(source: string): string {
+  return sourceGroups[source] ?? '长期记忆'
+}
+
+function sanitizePathSegment(value: string): string {
+  return value
+    .replace(/[\\\/:*?"<>|]/g, '-')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 120) || 'untitled'
+}
+
 function pad(value: number): string {
   return String(value).padStart(2, '0')
 }
 
 export function renderArchivePath(
   template: string,
-  input: Pick<ArchiveMemoryInput, 'memoryType' | 'project' | 'captureTime'>,
+  input: Pick<ArchiveMemoryInput, 'title' | 'memoryType' | 'source' | 'project' | 'captureTime'>,
 ): string {
   const capture = input.captureTime
-  const project = (input.project || 'general').replace(/[\\/:*?"<>|]/g, '-').trim()
+  const project = sanitizePathSegment(input.project || 'general')
+  const title = sanitizePathSegment(input.title)
+  const group = resolveArchiveGroup(input.source)
   return template
     .replaceAll('{yyyy}', String(capture.getUTCFullYear()))
     .replaceAll('{MM}', pad(capture.getUTCMonth() + 1))
     .replaceAll('{dd}', pad(capture.getUTCDate()))
     .replaceAll('{type}', input.memoryType)
     .replaceAll('{project}', project)
+    .replaceAll('{group}', group)
+    .replaceAll('{title}', title)
 }
 
 export function renderArchiveMarkdown(input: ArchiveMemoryInput): string {

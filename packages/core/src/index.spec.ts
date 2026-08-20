@@ -5,6 +5,7 @@ import {
   executeSiyuanArchive,
   renderArchiveMarkdown,
   renderArchivePath,
+  resolveArchiveGroup,
 } from './index.js'
 
 const sample = {
@@ -24,11 +25,33 @@ const sample = {
   hubPublicUrl: 'http://localhost:8788',
 }
 
+describe('resolveArchiveGroup', () => {
+  it('maps manual to 手动归档', () => {
+    expect(resolveArchiveGroup('manual')).toBe('手动归档')
+  })
+  it('maps claude_code to 对话保存', () => {
+    expect(resolveArchiveGroup('claude_code')).toBe('对话保存')
+  })
+  it('defaults unknown sources to 长期记忆', () => {
+    expect(resolveArchiveGroup('rest')).toBe('长期记忆')
+    expect(resolveArchiveGroup('unknown')).toBe('长期记忆')
+  })
+})
+
 describe('archive rendering', () => {
-  it('renders path templates', () => {
+  it('renders path templates with title and group', () => {
     expect(
       renderArchivePath('/MemoryHub/20 项目/{project}/决策', sample),
     ).toBe('/MemoryHub/20 项目/memory-hub/决策')
+    expect(
+      renderArchivePath('/MemoryHub/{group}/{title}', sample),
+    ).toBe('/MemoryHub/手动归档/采用 PostgreSQL')
+    expect(
+      renderArchivePath('/MemoryHub/{group}/{type}/{title}', {
+        ...sample,
+        source: 'claude_code',
+      }),
+    ).toBe('/MemoryHub/对话保存/decision/采用 PostgreSQL')
   })
 
   it('includes metadata and body', () => {

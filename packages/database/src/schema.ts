@@ -98,7 +98,7 @@ export const archiveTargets = pgTable('archive_targets', {
   notebookName: text('notebook_name'),
   pathTemplate: text('path_template')
     .notNull()
-    .default('/MemoryHub/10 长期记忆/{type}'),
+    .default('/MemoryHub/{group}/{title}'),
   allowedHosts: text('allowed_hosts'),
   lastTestStatus: text('last_test_status'),
   lastTestMessage: text('last_test_message'),
